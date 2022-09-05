@@ -6,10 +6,14 @@ import argparse
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import StratifiedKFold
 from helpers import read_corpus
+import numpy as np
 
 def create_arg_parser():
     parser = argparse.ArgumentParser()
@@ -31,6 +35,10 @@ if __name__ == "__main__":
     X_train, y_train = read_corpus(args.train_file, args.sentiment)
     X_test, y_test = read_corpus(args.dev_file, args.sentiment)
 
+
+    X = X_train + X_test
+    y = y_train + y_test
+
     # Convert the texts to vectors
     # We use a dummy function as tokenizer and preprocessor,
     # since the texts are already preprocessed and tokenized.
@@ -43,16 +51,8 @@ if __name__ == "__main__":
     # Combine the vectorizer with a Naive Bayes classifier
     # Of course you have to experiment with different classifiers
     # You can all find them through the sklearn library
-    classifier = Pipeline([('vec', vec), ('cls', MultinomialNB())])
+    classifier = Pipeline([('vec', vec), ('cls', RandomForestClassifier(max_depth=15))])
 
     # TODO: comment this
-    classifier.fit(X_train, y_train)
-
-    # TODO: comment this
-    y_pred = classifier.predict(X_test)
-
-    # TODO: comment this
-    acc = accuracy_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred, average='macro')
-    print(f"Final accuracy: {acc}")
-    print(f"Final F1 score: {f1}")
+    skf = StratifiedKFold(n_splits=5, shuffle=True)
+    print(cross_val_score(classifier, X, y, cv=skf, scoring='accuracy'))
