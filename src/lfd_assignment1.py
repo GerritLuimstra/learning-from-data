@@ -59,8 +59,6 @@ if __name__ == "__main__":
     with mlflow.start_run():
 
         # Convert the texts to vectors
-        # We use a dummy function as tokenizer and preprocessor,
-        # since the texts are already preprocessed and tokenized.
         if args.tfidf:
             vec = TfidfVectorizer(preprocessor=lambda x: x, tokenizer=lambda x: x)
         else:
@@ -78,15 +76,16 @@ if __name__ == "__main__":
         mlflow.log_param("FOLDS", args.folds)
         mlflow.log_params(classifier.get_params())
 
-        # Combine the vectorizer with a Naive Bayes classifier
-        # Of course you have to experiment with different classifiers
-        # You can all find them through the sklearn library
+        # Setup the pipeline
         classifier = Pipeline([('vec', vec), ('cls', classifier)])
 
-        # TODO: comment this
+        # Setup stratified cross validation
+        # Stratification ensures that each fold has the 
+        # same class proportion as the main dataset
+        # https://en.wikipedia.org/wiki/Stratified_sampling
         skf = StratifiedKFold(n_splits=args.folds, shuffle=True)
 
-        # Log the stats
+        # Log the stats in MLFlow
         for metric in metrics:
             scores = cross_val_score(classifier, X, y, cv=skf, scoring=metric)
             mlflow.log_metric(metric + " std", np.std(scores))
