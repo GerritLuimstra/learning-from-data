@@ -1,1 +1,0 @@
-mlflow server --host localhost --port 5000 --backend-store-uri file:./mlflow/tracking --serve-artifacts --default-artifact-root ./mlflow/artifacts
