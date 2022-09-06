@@ -1,2 +1,0 @@
-[('vec', CountVectorizer(preprocessor=<function <lambda> at 0x0000023A77EB3310>,
-                tokenizer=<function <lambda> at 0x0000023A77EB3430>)), ('cls', RandomForestClassifier(max_depth=15))]
