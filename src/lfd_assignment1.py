@@ -16,11 +16,18 @@ import numpy as np
 import mlflow
 import mlflow.sklearn
 import random
+import nltk
 
 # Ensure reproducability
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
+
+LOWERCASE = True
+STOP_WORDS = 'english'
+NGRAM_RANGE = (1,1)
+MAX_FEATURES = 10000
+STRIP_ACCENTS = False
 
 if __name__ == "__main__":
 
@@ -38,7 +45,7 @@ if __name__ == "__main__":
     param_dict = dict(zip(params, values))
 
     # Setup the connection to ML flow (for tracking)
-    mlflow.set_tracking_uri("http://localhost:5000")
+    mlflow.set_tracking_uri("http://localhost:5050")
     _ = mlflow.set_experiment("Learning From Data Assignment 1")
 
     # Read in the data from the train and dev file
@@ -60,10 +67,12 @@ if __name__ == "__main__":
 
         # Convert the texts to vectors
         if args.tfidf:
-            vec = TfidfVectorizer(preprocessor=lambda x: x, tokenizer=lambda x: x)
+            vec = TfidfVectorizer(lowercase = LOWERCASE, stop_words = STOP_WORDS, ngram_range = NGRAM_RANGE, max_features = MAX_FEATURES, strip_accents = STRIP_ACCENTS, 
+                                    preprocessor=lambda x: x, tokenizer=lambda x: x)
         else:
             # Bag of Words vectorizer
-            vec = CountVectorizer(preprocessor=lambda x: x, tokenizer=lambda x: x)
+            vec = CountVectorizer(lowercase = LOWERCASE, stop_words = STOP_WORDS, ngram_range = NGRAM_RANGE, max_features = MAX_FEATURES, strip_accents = STRIP_ACCENTS,
+                                    preprocessor=lambda x: x, tokenizer=lambda x: x)
 
         # Create the classifier with the given parameters
         classifier = classifiers[args.model_name](**param_dict)
@@ -74,11 +83,15 @@ if __name__ == "__main__":
         mlflow.log_param("TFIDF", args.tfidf)
         mlflow.log_param("MODEL NAME", classifier.__class__.__name__)
         mlflow.log_param("FOLDS", args.folds)
+        mlflow.log_param("LOWERCASE", LOWERCASE)
+        mlflow.log_param("STOP_WORDS", STOP_WORDS)
+        mlflow.log_param("NGRAM_RANGE", NGRAM_RANGE)
+        mlflow.log_param("MAX_FEATURES", MAX_FEATURES)
+        mlflow.log_param("STRIP_ACCENTS", STRIP_ACCENTS)
         mlflow.log_params(classifier.get_params())
 
         # Setup the pipeline
         classifier = Pipeline([('vec', vec), ('cls', classifier)])
-
         # Setup stratified cross validation
         # Stratification ensures that each fold has the 
         # same class proportion as the main dataset

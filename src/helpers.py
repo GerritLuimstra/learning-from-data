@@ -38,5 +38,5 @@ def parse_values(values):
         if "'" in value:
             values_.append(value.replace("'", ""))
         else:
-            values_.append(int(value))
+            values_.append(float(value))
     return values_
