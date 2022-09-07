@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''TODO: add high-level description of this Python script'''
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -11,23 +9,25 @@ from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 from helpers import read_corpus, create_arg_parser, parse_values
+from nltk.stem.porter import PorterStemmer
+from nltk.stem import WordNetLemmatizer
 import numpy as np
 
 import mlflow
 import mlflow.sklearn
 import random
-import nltk
 
 # Ensure reproducability
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-LOWERCASE = True
 STOP_WORDS = 'english'
-NGRAM_RANGE = (1,1)
-MAX_FEATURES = 10000
+NGRAM_RANGE = (1, 2)
+MAX_WORDS = 50000
 STRIP_ACCENTS = False
+USE_LEMMATIZATION = False
+USE_STEMMING = True
 
 if __name__ == "__main__":
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     param_dict = dict(zip(params, values))
 
     # Setup the connection to ML flow (for tracking)
-    mlflow.set_tracking_uri("http://localhost:5050")
+    mlflow.set_tracking_uri("http://localhost:5000")
     _ = mlflow.set_experiment("Learning From Data Assignment 1")
 
     # Read in the data from the train and dev file
@@ -65,14 +65,35 @@ if __name__ == "__main__":
     }
     with mlflow.start_run():
 
+        # Setup the stemmer and lemmatizer
+        stemmer = PorterStemmer()
+        lemmatizer = WordNetLemmatizer()
+
+        # Setup a general analyzer function
+        # so that we can optionally include
+        # stemming or lemmatization
+        analyzer = CountVectorizer(
+            lowercase=True, stop_words=STOP_WORDS, 
+            ngram_range=NGRAM_RANGE, max_features=MAX_WORDS,
+            strip_accents=STRIP_ACCENTS, 
+            preprocessor=lambda x: x, 
+            tokenizer=lambda x: x
+        ).build_analyzer()
+
+        # Setup the proper analyzer_
+        if USE_LEMMATIZATION:
+            analyzer_ = lambda doc: (lemmatizer.lemmatize(w) for w in analyzer(doc))
+        elif USE_STEMMING:
+            analyzer_ = lambda doc: (stemmer.stem(w) for w in analyzer(doc))
+        else:
+            analyzer_ = lambda x: x
+
         # Convert the texts to vectors
         if args.tfidf:
-            vec = TfidfVectorizer(lowercase = LOWERCASE, stop_words = STOP_WORDS, ngram_range = NGRAM_RANGE, max_features = MAX_FEATURES, strip_accents = STRIP_ACCENTS, 
-                                    preprocessor=lambda x: x, tokenizer=lambda x: x)
+            vec = TfidfVectorizer(analyzer=analyzer_)
         else:
             # Bag of Words vectorizer
-            vec = CountVectorizer(lowercase = LOWERCASE, stop_words = STOP_WORDS, ngram_range = NGRAM_RANGE, max_features = MAX_FEATURES, strip_accents = STRIP_ACCENTS,
-                                    preprocessor=lambda x: x, tokenizer=lambda x: x)
+            vec = CountVectorizer(analyzer=analyzer_)
 
         # Create the classifier with the given parameters
         classifier = classifiers[args.model_name](**param_dict)
@@ -83,15 +104,17 @@ if __name__ == "__main__":
         mlflow.log_param("TFIDF", args.tfidf)
         mlflow.log_param("MODEL NAME", classifier.__class__.__name__)
         mlflow.log_param("FOLDS", args.folds)
-        mlflow.log_param("LOWERCASE", LOWERCASE)
         mlflow.log_param("STOP_WORDS", STOP_WORDS)
+        mlflow.log_param("LEMMATIZATION", USE_LEMMATIZATION)
+        mlflow.log_param("STEMMING", USE_STEMMING)
         mlflow.log_param("NGRAM_RANGE", NGRAM_RANGE)
-        mlflow.log_param("MAX_FEATURES", MAX_FEATURES)
+        mlflow.log_param("MAX_WORDS", MAX_WORDS)
         mlflow.log_param("STRIP_ACCENTS", STRIP_ACCENTS)
         mlflow.log_params(classifier.get_params())
 
         # Setup the pipeline
         classifier = Pipeline([('vec', vec), ('cls', classifier)])
+
         # Setup stratified cross validation
         # Stratification ensures that each fold has the 
         # same class proportion as the main dataset

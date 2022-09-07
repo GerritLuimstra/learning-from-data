@@ -37,6 +37,10 @@ def parse_values(values):
     for value in values:
         if "'" in value:
             values_.append(value.replace("'", ""))
-        else:
+        elif "." in value:
             values_.append(float(value))
+        elif value == "None":
+            values_.append(None)
+        else:
+            values_.append(int(value))
     return values_
