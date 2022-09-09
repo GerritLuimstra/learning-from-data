@@ -1,4 +1,5 @@
 import argparse
+import numpy as np
 
 def read_corpus(corpus_file, use_sentiment):
     '''TODO: add function description'''
@@ -22,8 +23,6 @@ def create_arg_parser():
                         help="Train file to learn from (default train.txt)")
     parser.add_argument("-df", "--dev_file", default='dev.txt', type=str,
                         help="Dev file to evaluate on (default dev.txt)")
-    parser.add_argument("-s", "--sentiment", action="store_true",
-                        help="Do sentiment analysis (2-class problem)")
     parser.add_argument("-t", "--tfidf", action="store_true",
                         help="Use the TF-IDF vectorizer instead of CountVectorizer")
     parser.add_argument("-m", "--model_name", type=str, default='nb', help="The model to use. Can be one of ['nb', 'dt', 'rf', 'knn', 'svm']")
@@ -44,3 +43,24 @@ def parse_values(values):
         else:
             values_.append(int(value))
     return values_
+
+def create_initial_vocabulary(X):
+
+    # Obtain all words in the dataset
+    flattened = [word for sample in X for word in sample]
+
+    # Obtain the unique words and their frequencies
+    words, frequency = np.unique(flattened, return_counts=True)
+
+    # Remove all words that have a frequency of less than 5
+    words = words[frequency >= 5]
+
+    # Load in all the words from the english dictionary
+    # from https://github.com/dwyl/english-words
+    with open("src/english_wordlist.txt") as f:
+        english_words = set(f.read().split("\n"))
+
+    # Remove words that are not in the english language dictionary
+    words = words[[word in english_words for word in words]]
+
+    return set(words)

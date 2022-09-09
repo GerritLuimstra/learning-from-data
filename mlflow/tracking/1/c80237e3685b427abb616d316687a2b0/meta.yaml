@@ -1,0 +1,15 @@
+artifact_uri: ./mlflow/artifacts/1/c80237e3685b427abb616d316687a2b0/artifacts
+end_time: 1662758405210
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: c80237e3685b427abb616d316687a2b0
+run_uuid: c80237e3685b427abb616d316687a2b0
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1662758352636
+status: 3
+tags: []
+user_id: Gerrit
