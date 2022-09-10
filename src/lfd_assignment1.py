@@ -9,7 +9,7 @@ from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_validate, StratifiedKFold
 from sklearn.metrics import make_scorer, f1_score, recall_score, precision_score, accuracy_score
-from helpers import create_initial_vocabulary, read_corpus, create_arg_parser, parse_values
+from helpers import create_vocabulary, read_corpus, create_arg_parser, parse_values
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 import numpy as np
@@ -23,10 +23,9 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-STOP_WORDS = 'english'
 NGRAM_RANGE = (1, 1)
 USE_LEMMATIZATION = False
-USE_STEMMING = False if USE_LEMMATIZATION else True
+USE_STEMMING = False if USE_LEMMATIZATION else False
 
 if __name__ == "__main__":
 
@@ -82,39 +81,22 @@ if __name__ == "__main__":
         stemmer = PorterStemmer()
         lemmatizer = WordNetLemmatizer()
 
-        # Setup a general analyzer function
-        # so that we can optionally include
-        # stemming or lemmatization
-        analyzer = CountVectorizer(
-            lowercase=True,
-            stop_words='english', 
-            ngram_range=NGRAM_RANGE,
-            preprocessor=lambda x: x, 
-            tokenizer=lambda x: x
-        ).build_analyzer()
-
-        # Setup the proper analyzer_
-        if USE_LEMMATIZATION:
-            analyzer_ = lambda doc: (lemmatizer.lemmatize(w) for w in analyzer(doc))
-        elif USE_STEMMING:
-            analyzer_ = lambda doc: (stemmer.stem(w) for w in analyzer(doc))
+        # Create the vocabulary
+        if USE_STEMMING:
+            vocabulary = create_vocabulary(X, stemmer=stemmer)
+        elif USE_LEMMATIZATION:
+            vocabulary = create_vocabulary(X, lemmatizer=lemmatizer)
         else:
-            analyzer_ = lambda x: x
-
-        # Create the initial vocabulary (before stemming, stopword removal etc)
-        initial_vocabulary = create_initial_vocabulary(X)
-
-        # Remove words that are not in the dictionary
-        X = [list(filter(lambda word : word in initial_vocabulary, words)) for words in X]
+            vocabulary = create_vocabulary(X)
 
         # Convert the texts to vectors
         if args.tfidf:
-            vec = TfidfVectorizer(analyzer=analyzer_)
+            vec = TfidfVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x)
         else:
             # Bag of Words vectorizer
-            vec = CountVectorizer(analyzer=analyzer_)
+            vec = CountVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x)
 
-        # Fit the vectorizer on the dataset
+        # Transform the input data to the new vocabulary
         X = vec.fit_transform(X)
 
         # Create the classifier with the given parameters
@@ -128,6 +110,7 @@ if __name__ == "__main__":
         mlflow.log_param("LEMMATIZATION", USE_LEMMATIZATION)
         mlflow.log_param("STEMMING", USE_STEMMING)
         mlflow.log_param("NGRAM_RANGE", NGRAM_RANGE)
+        mlflow.log_param("VOCAB SIZE", len(vec.vocabulary_))
         mlflow.log_params(classifier.get_params())
 
         # Setup stratified cross validation
