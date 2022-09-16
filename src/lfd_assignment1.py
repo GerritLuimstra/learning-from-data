@@ -43,7 +43,7 @@ if __name__ == "__main__":
     param_dict = dict(zip(params, values))
 
     # Setup the connection to ML flow (for tracking)
-    mlflow.set_tracking_uri("http://localhost:5000")
+    mlflow.set_tracking_uri("http://localhost:5050")
     _ = mlflow.set_experiment("Learning From Data Assignment 1")
 
     # Read in the data from the train and dev file
