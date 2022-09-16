@@ -23,10 +23,6 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-NGRAM_RANGE = (1, 1)
-USE_LEMMATIZATION = False
-USE_STEMMING = False if USE_LEMMATIZATION else False
-
 if __name__ == "__main__":
 
     # Setup the argument parser
@@ -46,14 +42,8 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri("http://localhost:5050")
     _ = mlflow.set_experiment("Learning From Data Assignment 1")
 
-    # Read in the data from the train and dev file
-    X_train, y_train = read_corpus(args.train_file, False)
-    X_test, y_test = read_corpus(args.dev_file, False)
-
-    # Combine the train and test file into one big dataset
-    # as we will be using cross validation instead of a single train/test split
-    X = X_train + X_test
-    y = y_train + y_test
+    # Read in the data from the train file
+    X, y = read_corpus(args.train_file, False)
 
     # Setup the classifier mapping
     classifiers = {
@@ -82,19 +72,19 @@ if __name__ == "__main__":
         lemmatizer = WordNetLemmatizer()
 
         # Create the vocabulary
-        if USE_STEMMING:
+        if args.stemming:
             vocabulary = create_vocabulary(X, stemmer=stemmer)
-        elif USE_LEMMATIZATION:
+        elif args.lemmatization:
             vocabulary = create_vocabulary(X, lemmatizer=lemmatizer)
         else:
             vocabulary = create_vocabulary(X)
 
         # Convert the texts to vectors
         if args.tfidf:
-            vec = TfidfVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x)
+            vec = TfidfVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x, ngram_range=(1, args.ngram_range))
         else:
             # Bag of Words vectorizer
-            vec = CountVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x)
+            vec = CountVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x, ngram_range=(1, args.ngram_range))
 
         # Transform the input data to the new vocabulary
         X = vec.fit_transform(X)
@@ -107,9 +97,9 @@ if __name__ == "__main__":
         mlflow.log_param("TFIDF", args.tfidf)
         mlflow.log_param("MODEL NAME", classifier.__class__.__name__)
         mlflow.log_param("FOLDS", args.folds)
-        mlflow.log_param("LEMMATIZATION", USE_LEMMATIZATION)
-        mlflow.log_param("STEMMING", USE_STEMMING)
-        mlflow.log_param("NGRAM_RANGE", NGRAM_RANGE)
+        mlflow.log_param("LEMMATIZATION", args.lemmatization)
+        mlflow.log_param("STEMMING", args.stemming)
+        mlflow.log_param("NGRAM_RANGE", args.ngram_range)
         mlflow.log_param("VOCAB SIZE", len(vec.vocabulary_))
         mlflow.log_params(classifier.get_params())
 

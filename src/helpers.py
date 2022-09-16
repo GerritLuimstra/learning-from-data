@@ -20,11 +20,17 @@ def read_corpus(corpus_file, use_sentiment):
 def create_arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("-tf", "--train_file", default='train.txt', type=str,
-                        help="Train file to learn from (default train.txt)")
-    parser.add_argument("-df", "--dev_file", default='dev.txt', type=str,
-                        help="Dev file to evaluate on (default dev.txt)")
+                        help="Train file to learn from (default train.txt). This will be used for cross validation!")
+    parser.add_argument("-if", "--inference_file", default=None, type=str,
+                        help="Test to run inferences on. (default None)")
     parser.add_argument("-t", "--tfidf", action="store_true",
                         help="Use the TF-IDF vectorizer instead of CountVectorizer")
+    parser.add_argument("-l", "--lemmatization", action="store_true",
+                        help="Whether to use Lemmatization (default False)")
+    parser.add_argument("-s", "--stemming", action="store_true",
+                        help="Whether to use Stemming (default False).")
+    parser.add_argument("-n", "--ngram_range", type=int, default=1, 
+                        help="The upper n-gram range. This includes n-grams in the range (1, n). (default 1)")
     parser.add_argument("-m", "--model_name", type=str, default='nb', help="The model to use. Can be one of ['nb', 'dt', 'rf', 'knn', 'svm']")
     parser.add_argument("-f", "--folds", type=int, default=5, help="The amount of folds to use for the cross validation")
     parser.add_argument("-a", "--args", default=[], nargs='+', help="The arguments passed to the ML model")

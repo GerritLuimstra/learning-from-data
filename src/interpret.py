@@ -25,20 +25,14 @@ random.seed(SEED)
 np.random.seed(SEED)
 
 NGRAM_RANGE = (1, 1)
-USE_LEMMATIZATION = False
+USE_LEMMATIZATION = True
 USE_STEMMING = False if USE_LEMMATIZATION else False
 USE_TFIDF = True
 
 if __name__ == "__main__":
 
-    # Read in the data from the train and dev file
-    X_train, y_train = read_corpus("data/train.txt", False)
-    X_test, y_test = read_corpus("data/train.txt", False)
-
-    # Combine the train and test file into one big dataset
-    # as we will be using cross validation instead of a single train/test split
-    X = X_train + X_test
-    y = y_train + y_test
+    # Read in the data
+    X, y = read_corpus("data/reviews.txt", False)
 
     # Setup the stemmer and lemmatizer
     stemmer = PorterStemmer()

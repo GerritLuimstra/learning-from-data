@@ -5,3 +5,4 @@ dependencies:
   - mlflow
   - scikit-learn
   - nltk
+  - tqdm
