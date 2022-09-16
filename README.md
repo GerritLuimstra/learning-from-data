@@ -9,7 +9,7 @@ conda env create -f environment.yml
 
 Run the following from the project root
 ```{bash}
-conda activate learningfromdata
+conda activate learningfromdata_group20
 mlflow server --host localhost --port 5050 --backend-store-uri file:./mlflow/tracking --serve-artifacts --default-artifact-root ./mlflow/artifacts
 ```
 
@@ -23,4 +23,4 @@ As another example, here is a run with a SVM model (svm) with a linear kernel
 ```{bash}
 python src/lfd_assignment1.py -tf data/train.txt -df data/test.txt -m svm -a kernel 'linear'
 ```
-The result of these runs can be found in localhost:5000 (or whatever port you used for MLFlow above)
+The result of these runs can be found in localhost:5050 (or whatever port you used for MLFlow above)
