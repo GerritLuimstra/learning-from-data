@@ -1,4 +1,8 @@
-'''TODO: add high-level description of this Python script'''
+"""
+With this script various models can be trained.
+For more information on the parameters that can be used,
+consult the argument parser documentation in the helpers.py file.
+"""
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier

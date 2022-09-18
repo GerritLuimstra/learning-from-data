@@ -1,5 +1,6 @@
-'''TODO: add high-level description of this Python script'''
-
+"""
+This script allows you to use a Grid Search on the various parameter settings and models
+"""
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -82,11 +83,12 @@ if __name__ == "__main__":
 
     
     done = set([])
-    for _ in tqdm.tqdm(range(5000)):
+    for _ in tqdm.tqdm(range(5_000)):
 
         use_stemming = random.random() > 0.5
         use_lemmatization = random.random() > 0.5 if not use_stemming else False
         use_tfidf = random.random() > 0.5
+        reduce_words = random.random() > 0.5
         ngram_range = (1, random.choice([1, 2, 3]))
 
         # Compute the weights
@@ -117,11 +119,11 @@ if __name__ == "__main__":
 
         # Create the vocabulary
         if use_stemming:
-            vocabulary = create_vocabulary(X, stemmer=stemmer)
+            vocabulary = create_vocabulary(X, stemmer=stemmer, reduce_words=reduce_words)
         elif use_lemmatization:
-            vocabulary = create_vocabulary(X, lemmatizer=lemmatizer)
+            vocabulary = create_vocabulary(X, lemmatizer=lemmatizer, reduce_words=reduce_words)
         else:
-            vocabulary = create_vocabulary(X)
+            vocabulary = create_vocabulary(X, reduce_words=reduce_words)
 
         # Convert the texts to vectors
         if use_tfidf:
@@ -144,6 +146,7 @@ if __name__ == "__main__":
             mlflow.log_param("LEMMATIZATION", use_lemmatization)
             mlflow.log_param("STEMMING", use_stemming)
             mlflow.log_param("NGRAM_RANGE", ngram_range)
+            mlflow.log_param("REDUCE WORDS", reduce_words)
             mlflow.log_param("VOCAB SIZE", len(vec.vocabulary_))
             mlflow.log_params(classifier.get_params())
 

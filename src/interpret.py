@@ -1,39 +1,44 @@
-'''TODO: add high-level description of this Python script'''
-
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.svm import SVC, LinearSVC
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import cross_validate, StratifiedKFold
-from sklearn.metrics import make_scorer, f1_score, recall_score, precision_score, accuracy_score
-from helpers import create_vocabulary, read_corpus, create_arg_parser, parse_values
-from nltk.stem.porter import PorterStemmer
-from nltk.stem import WordNetLemmatizer
+"""
+This script is used to interpret our best performing LinearSVC model.
+"""
+import random
 import numpy as np
-from pprint import pprint
-import matplotlib.pyplot as plt
+from sklearn.svm import LinearSVC
+from nltk.stem import WordNetLemmatizer
+from nltk.stem.porter import PorterStemmer
+from helpers import create_vocabulary, read_corpus
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
-def f_importances(coef, names):
-    imp = coef
-    imp, names = zip(*sorted(zip(imp, names), reverse=True))
-    imp = imp[:10]
-    names = names[:10]
+def feature_importances(coef, names, top_k=10):
+    """
+    Prints out the feature importances from a given set of feature coefficients and names
+    
+    Parameters
+    ----------
+        coef : list of floats
+            The list of LinearSVC coefficients
+        names : PorterStemmer
+            The names of the features
+        top_k : int
+            The top k features to print out
 
+    Returns
+    -------
+    None
+    """
+    imp, names = zip(*sorted(zip(coef, names), reverse=True))
+    imp = imp[:top_k]
+    names = names[:top_k]
     for weight, word in zip(imp, names):
         print(word, "&", round(weight, 3), "\\\\")
 
-import mlflow
-import mlflow.sklearn
-import random
 
 # Ensure reproducability
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
+# Hardcode the properties
 NGRAM_RANGE = (1, 1)
 USE_LEMMATIZATION = False
 USE_STEMMING = False if USE_LEMMATIZATION else False
@@ -67,34 +72,14 @@ if __name__ == "__main__":
     # Transform the input data to the new vocabulary
     X_= vec.fit_transform(X)
 
-    # Create the classifier with the given parameters
+    # Create and fit the classifier with the given parameters
     classifier = LinearSVC(C=0.05)
     classifier.fit(X_, y)
 
-    classes = classifier.classes_
-
-    # # # Obtain all words in the dataset
-    # # flattened = [word for sample in X_ for word in sample]
-    # # # Obtain the unique words and their frequencies
-    # # words, frequency = np.unique(flattened, return_counts=True)
-    # # p_w = frequency / np.sum(frequency)
-    # p_w = np.sum(classifier.feature_count_, axis=0)/np.sum(np.sum(classifier.feature_count_, axis=0))
-    # for c, name in enumerate(classes):
-    #     print(name)
-    #     probs = np.array([np.exp(prob) for prob in classifier.feature_log_prob_[c]])# / p_w
-    #     names = np.array(vec.get_feature_names())
-    #     idxs = np.argsort(-probs)
-    #     probs = probs[idxs]
-    #     names = names[idxs]
-    #     print(list(zip(names, probs))[:5])
-    #     print("===")
-
     for i in range(len(np.unique(y))):
+        # Print out the topic name
         print(classifier.classes_[i])
-
-
-
-
-        f_importances(classifier.coef_[i], vec.get_feature_names())
+        # Print out the feature importances
+        feature_importances(classifier.coef_[i], vec.get_feature_names())
 
     

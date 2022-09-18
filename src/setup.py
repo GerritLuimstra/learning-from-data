@@ -1,6 +1,6 @@
+import numpy as np
 from helpers import read_corpus
 from sklearn.model_selection import train_test_split
-import numpy as np
 
 # Read in the data
 X, y = read_corpus("data/reviews.txt", False)

@@ -1,3 +1,7 @@
+"""
+This script provides helper functions for the main program
+"""
+
 import argparse
 import numpy as np
 
