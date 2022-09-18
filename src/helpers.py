@@ -32,7 +32,7 @@ def create_arg_parser():
     parser.add_argument("-n", "--ngram_range", type=int, default=1, 
                         help="The upper n-gram range. This includes n-grams in the range (1, n). (default 1)")
     parser.add_argument("-m", "--model_name", type=str, default='nb', help="The model to use. Can be one of ['nb', 'dt', 'rf', 'knn', 'svm']")
-    parser.add_argument("-f", "--folds", type=int, default=5, help="The amount of folds to use for the cross validation")
+    parser.add_argument("-f", "--folds", type=int, default=10, help="The amount of folds to use for the cross validation")
     parser.add_argument("-a", "--args", default=[], nargs='+', help="The arguments passed to the ML model")
     args = parser.parse_args()
     return args

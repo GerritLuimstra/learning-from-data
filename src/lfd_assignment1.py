@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.model_selection import cross_validate, StratifiedKFold
 from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import make_scorer, f1_score, recall_score, precision_score, accuracy_score
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     classifiers = {
         'dt': DecisionTreeClassifier, 'knn': KNeighborsClassifier, 
         'rf': RandomForestClassifier, 'nb': MultinomialNB, 
-        'svm': SVC
+        'svm': SVC, 'linearsvc': LinearSVC
     }
 
     # Setup the metrics to track
