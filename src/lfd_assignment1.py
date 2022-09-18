@@ -67,11 +67,11 @@ if __name__ == "__main__":
 
     # Create the vocabulary
     if args.stemming:
-        vocabulary = create_vocabulary(X, stemmer=stemmer)
+        vocabulary = create_vocabulary(X, stemmer=stemmer, reduce_words=not args.no_reduce_words)
     elif args.lemmatization:
-        vocabulary = create_vocabulary(X, lemmatizer=lemmatizer)
+        vocabulary = create_vocabulary(X, lemmatizer=lemmatizer, reduce_words=not args.no_reduce_words)
     else:
-        vocabulary = create_vocabulary(X)
+        vocabulary = create_vocabulary(X, reduce_words=not args.no_reduce_words)
 
     # Convert the texts to vectors
     if args.tfidf:
@@ -100,6 +100,7 @@ if __name__ == "__main__":
         mlflow.log_param("LEMMATIZATION", args.lemmatization)
         mlflow.log_param("STEMMING", args.stemming)
         mlflow.log_param("NGRAM_RANGE", args.ngram_range)
+        mlflow.log_param("REDUCE WORDS", not args.no_reduce_words)
         mlflow.log_param("VOCAB SIZE", len(vec.vocabulary_))
         mlflow.log_params(classifier.get_params())
 

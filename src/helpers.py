@@ -57,6 +57,8 @@ def create_arg_parser():
                         help="Whether to use Lemmatization (default False)")
     parser.add_argument("-s", "--stemming", action="store_true",
                         help="Whether to use Stemming (default False).")
+    parser.add_argument("-nr", "--no_reduce_words", action="store_true", default=False,
+                        help="Do not reduce words by removing stopwords and only considering words in the english dictionary.")
     parser.add_argument("-n", "--ngram_range", type=int, default=1, 
                         help="The upper n-gram range. This includes n-grams in the range (1, n). (default 1)")
     parser.add_argument("-m", "--model_name", type=str, default='nb', help="The model to use. Can be one of ['nb', 'dt', 'rf', 'knn', 'svm']")
@@ -95,7 +97,7 @@ def parse_values(values):
             values_.append(int(value))
     return values_
 
-def create_vocabulary(X, stemmer=None, lemmatizer=None):
+def create_vocabulary(X, stemmer=None, lemmatizer=None, reduce_words=True):
     """
     Creates a vocabulary based on the incoming dataset X.
 
@@ -115,6 +117,8 @@ def create_vocabulary(X, stemmer=None, lemmatizer=None):
             The stemmer to be used (optional)
         lemmatizer : WordNetLemmatizer
             The lemmatizer to be used (optional)
+        reduce_words : boolean
+            Whether or not to reduce the vocabulary by excluding stopwords and words not in the english dictionary
 
     Returns
     -------
@@ -137,21 +141,26 @@ def create_vocabulary(X, stemmer=None, lemmatizer=None):
     # Remove words that contain numbers
     words = list(filter(lambda word: not any(char.isdigit() for char in word), words))
 
-    # Load in all the words from the english dictionary
-    # from https://github.com/dwyl/english-words
-    with open("src/english_wordlist.txt") as f:
-        english_words = set(f.read().split("\n"))
-    
-    # Remove words that are not in the english language dictionary
-    words = list(filter(lambda word: word in english_words, words))
+    # Remove words that are shorter than 1 character
+    words = list(filter(lambda word: len(word) >= 1, words))
 
-    # Load in the stop words
-    # from https://github.com/dwyl/english-words
-    with open("src/stopwords.txt") as f:
-        stopwords = set(f.read().split("\n"))
+    if reduce_words:
 
-    # Remove stopwords
-    words = list(filter(lambda word: word not in stopwords, words))
+        # Load in all the words from the english dictionary
+        # from https://github.com/dwyl/english-words
+        with open("src/english_wordlist.txt") as f:
+            english_words = set(f.read().split("\n"))
+        
+        # Remove words that are not in the english language dictionary
+        words = list(filter(lambda word: word in english_words, words))
+
+        # Load in the stop words
+        # from https://gist.github.com/rg089/35e00abf8941d72d419224cfd5b5925d
+        with open("src/stopwords.txt") as f:
+            stopwords = set(f.read().split("\n"))
+
+        # Remove stopwords
+        words = list(filter(lambda word: word not in stopwords, words))
 
     # Perform stemming or lemmatization
     if lemmatizer is not None:
