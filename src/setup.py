@@ -1,3 +1,6 @@
+"""
+This file generates the cross validation and inference split in a stratified manner.
+"""
 import numpy as np
 from helpers import read_corpus
 from sklearn.model_selection import train_test_split
