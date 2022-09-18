@@ -1,5 +1,4 @@
 '''TODO: add high-level description of this Python script'''
-
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -78,7 +77,6 @@ if __name__ == "__main__":
     if args.tfidf:
         vec = TfidfVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x, ngram_range=(1, args.ngram_range))
     else:
-        # Bag of Words vectorizer
         vec = CountVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x, ngram_range=(1, args.ngram_range))
 
     # Transform the input data to the new vocabulary

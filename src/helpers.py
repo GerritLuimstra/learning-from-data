@@ -2,7 +2,23 @@ import argparse
 import numpy as np
 
 def read_corpus(corpus_file, use_sentiment):
-    '''TODO: add function description'''
+    """
+    Reads in the dataset from a txt file and parses it into documents and corresponding labels.
+
+    Each line is of the form [topic sentiment id content]
+    and will be turned in a [content], [topic/sentiment]
+    
+    Parameters
+    ----------
+        corpus_file : str
+            A link to the file containing the reviews
+        use_sentiment : boolean
+            Whether or not to use the sentiment label rather than the topic
+
+    Returns
+    -------
+    The parsed documents and labels
+    """
     documents = []
     labels = []
     with open(corpus_file, encoding='utf-8') as in_file:
@@ -18,6 +34,18 @@ def read_corpus(corpus_file, use_sentiment):
     return documents, labels
 
 def create_arg_parser():
+    """
+    Sets up the argument parser
+    and parses the results from the terminal
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    The parsed arguments
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("-cf", "--cross_file", type=str,
                         help="Txt file that will be used to perform cross-validation.")
@@ -38,6 +66,23 @@ def create_arg_parser():
     return args
 
 def parse_values(values):
+    """
+    Parses the values of the classifier
+
+    A value with a ' in it should be turned into a string
+    A value with a . in it should be turned into a float
+    A value of None should be turned into a None
+    Everything else is treated as an integer
+    
+    Parameters
+    ----------
+        values : list
+            The list of values to be parsed
+
+    Returns
+    -------
+    A parsed set of values
+    """
     values_ = []
     for value in values:
         if "'" in value:
@@ -51,6 +96,30 @@ def parse_values(values):
     return values_
 
 def create_vocabulary(X, stemmer=None, lemmatizer=None):
+    """
+    Creates a vocabulary based on the incoming dataset X.
+
+    The following steps are performed:
+    - Removal of words that appears less than 5 times
+    - Removal of qoutes in words
+    - Removal of words that contain numbers
+    - Removal of words that are not part of the English dictionary
+    - Removal of stopwords
+    - Stemming or Lemmatization on each term
+    
+    Parameters
+    ----------
+        X : list of lists
+            The dataset to create the vocabulary for
+        stemmer : PorterStemmer
+            The stemmer to be used (optional)
+        lemmatizer : WordNetLemmatizer
+            The lemmatizer to be used (optional)
+
+    Returns
+    -------
+    A set of words that form the vocabulary to be used by the vectorizers
+    """
 
     # Obtain all words in the dataset
     flattened = [word for sample in X for word in sample]
