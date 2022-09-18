@@ -1,4 +1,4 @@
-# Setup the environment
+# Setting up the environment
 
 In order to setup the environment that we used to train and test our models, the first thing to do would be to setup the conda environment.
 We have created a conda environment yml file, so setting up the environent should be as simple as:
