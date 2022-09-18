@@ -19,10 +19,10 @@ def read_corpus(corpus_file, use_sentiment):
 
 def create_arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-tf", "--train_file", default='train.txt', type=str,
-                        help="Train file to learn from (default train.txt). This will be used for cross validation!")
+    parser.add_argument("-cf", "--cross_file", type=str,
+                        help="Txt file that will be used to perform cross-validation.")
     parser.add_argument("-if", "--inference_file", default=None, type=str,
-                        help="Test to run inferences on. (default None)")
+                        help="Optional test set to run inferences on. (default None).")
     parser.add_argument("-t", "--tfidf", action="store_true",
                         help="Use the TF-IDF vectorizer instead of CountVectorizer")
     parser.add_argument("-l", "--lemmatization", action="store_true",

@@ -6,13 +6,14 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_validate, StratifiedKFold
+from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import make_scorer, f1_score, recall_score, precision_score, accuracy_score
 from helpers import create_vocabulary, read_corpus, create_arg_parser, parse_values
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mlflow
 import mlflow.sklearn
@@ -29,6 +30,7 @@ if __name__ == "__main__":
     # and parse the arguments
     args = create_arg_parser()
 
+    # Check if the classifier arguments are properly given
     if not len(args.args) % 2 == 0:
         print("Invalid arguments specified. Should be in the form: param1 value1 param2 value2")
         exit(0)
@@ -38,12 +40,8 @@ if __name__ == "__main__":
     values = parse_values(args.args[1::2])
     param_dict = dict(zip(params, values))
 
-    # Setup the connection to ML flow (for tracking)
-    mlflow.set_tracking_uri("http://localhost:5050")
-    _ = mlflow.set_experiment("Learning From Data Assignment 1")
-
-    # Read in the data from the train file
-    X, y = read_corpus(args.train_file, False)
+    # Read in the data from the specified file
+    X, y = read_corpus(args.cross_file, False)
 
     # Setup the classifier mapping
     classifiers = {
@@ -64,33 +62,37 @@ if __name__ == "__main__":
             'precision_' + str(c): make_scorer(precision_score, average=None, labels=[c])
         }
 
+    # Setup the stemmer and lemmatizer
+    stemmer = PorterStemmer()
+    lemmatizer = WordNetLemmatizer()
+
+    # Create the vocabulary
+    if args.stemming:
+        vocabulary = create_vocabulary(X, stemmer=stemmer)
+    elif args.lemmatization:
+        vocabulary = create_vocabulary(X, lemmatizer=lemmatizer)
+    else:
+        vocabulary = create_vocabulary(X)
+
+    # Convert the texts to vectors
+    if args.tfidf:
+        vec = TfidfVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x, ngram_range=(1, args.ngram_range))
+    else:
+        # Bag of Words vectorizer
+        vec = CountVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x, ngram_range=(1, args.ngram_range))
+
+    # Transform the input data to the new vocabulary
+    X = vec.fit_transform(X)
+
+     # Create the classifier with the given parameters
+    classifier = classifiers[args.model_name](**param_dict)
+
+    # Setup the connection to ML flow (for tracking)
+    mlflow.set_tracking_uri("http://localhost:5050")
+    _ = mlflow.set_experiment("Learning From Data Assignment 1")
+
     # Start the experiment
     with mlflow.start_run():
-
-        # Setup the stemmer and lemmatizer
-        stemmer = PorterStemmer()
-        lemmatizer = WordNetLemmatizer()
-
-        # Create the vocabulary
-        if args.stemming:
-            vocabulary = create_vocabulary(X, stemmer=stemmer)
-        elif args.lemmatization:
-            vocabulary = create_vocabulary(X, lemmatizer=lemmatizer)
-        else:
-            vocabulary = create_vocabulary(X)
-
-        # Convert the texts to vectors
-        if args.tfidf:
-            vec = TfidfVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x, ngram_range=(1, args.ngram_range))
-        else:
-            # Bag of Words vectorizer
-            vec = CountVectorizer(vocabulary=vocabulary, preprocessor=lambda x: x, tokenizer=lambda x: x, ngram_range=(1, args.ngram_range))
-
-        # Transform the input data to the new vocabulary
-        X = vec.fit_transform(X)
-
-        # Create the classifier with the given parameters
-        classifier = classifiers[args.model_name](**param_dict)
 
         # Log the experiment in ML flow
         mlflow.log_param("SEED", SEED)
@@ -116,3 +118,26 @@ if __name__ == "__main__":
                 continue
             mlflow.log_metric(metric.replace("test_", "") + " std", np.std(scores[metric]))
             mlflow.log_metric(metric.replace("test_", "") + " mean", np.mean(scores[metric]))
+
+        # Fit the model on the whole dataset
+        # so that it can be used for inference
+        classifier.fit(X, y)
+
+    if args.inference_file is not None:
+
+        # Load in the inference data
+        X_inf, y_inf = read_corpus(args.inference_file, False)
+
+        # Transform the input data to the new vocabulary
+        X_inf = vec.fit_transform(X_inf)
+
+        # Obtain the model predictions
+        predictions = classifier.predict(X_inf)
+
+        # Obtain the metrics
+        for metric in metrics:
+            print(metric, metrics[metric](classifier, X_inf, y_inf))
+
+        # Display the confusion matrix
+        plot_confusion_matrix(classifier, X_inf, y_inf)
+        plt.show()
