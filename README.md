@@ -16,7 +16,7 @@ This can be done by running:
 ```{bash}
 python src/setup.py
 ```
-however this should not be necessary as we already generated the cross.txt and inference.txt files.
+however this should **not** be necessary as we already generated the cross.txt and inference.txt files.
 
 ### Running a model
 The argument parser that we use is quite generic, allowing us to specify an arbitratry amount of parameters. For more information, you should check out the ```helper.py``` file and look at the documentation of the  ```create_arg_parser()``` function.
