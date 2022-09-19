@@ -44,6 +44,8 @@ python src/lfd_assignment1.py -cf data/cross.txt -if data/inference.txt --lemmat
 This will print out all the required metrics and will plot a confusion matrix using matplotlib.
 To run our best model on a custom inference set (test set), simply replace ```data/inference.txt``` with the location of your test file.
 
+**NOTE**: It is required to have the MLFlow server running in order to run the code. Otherwise a connection timed out error will be printed.
+
 ## MLFlow
 Furthermore, all experiments that we ran can be found at localhost:5050 (or whatever port you used for MLFlow above).
 To access the data, go to the Learning From Data Assignment 1 Experiment and click Refresh (this can take a minute to load).
