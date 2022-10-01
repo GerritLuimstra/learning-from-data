@@ -23,13 +23,13 @@ python_random.seed(1234)
 
 def create_arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--train_file", default='train.txt', type=str,
+    parser.add_argument("-i", "--train_file", default='data/train.txt', type=str,
                         help="Input file to learn from (default train.txt)")
-    parser.add_argument("-d", "--dev_file", type=str, default='dev.txt',
+    parser.add_argument("-d", "--dev_file", type=str, default='data/dev.txt',
                         help="Separate dev set to read in (default dev.txt)")
     parser.add_argument("-t", "--test_file", type=str,
                         help="If added, use trained model to predict on test set")
-    parser.add_argument("-e", "--embeddings", default='glove_reviews.json', type=str,
+    parser.add_argument("-e", "--embeddings", default='data/glove_reviews.json', type=str,
                         help="Embedding file we are using (default glove_reviews.json)")
     args = parser.parse_args()
     return args
