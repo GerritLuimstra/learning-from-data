@@ -6,14 +6,14 @@ import random as python_random
 import json
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers.core import Dense
-from keras.layers import Embedding, LSTM
+from keras.layers import Embedding, LSTM, Bidirectional, TextVectorization
+from keras.optimizers import SGD, Adam
 from keras.initializers import Constant
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelBinarizer
-from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.layers import TextVectorization
 import tensorflow as tf
 # Make reproducible as much as possible
 np.random.seed(1234)
@@ -74,9 +74,9 @@ def get_emb_matrix(voc, emb):
 def create_model(Y_train, emb_matrix):
     '''Create the Keras model to use'''
     # Define settings, you might want to create cmd line args for them
-    learning_rate = 0.01
+    learning_rate = 0.0001
     loss_function = 'categorical_crossentropy'
-    optim = SGD(learning_rate=learning_rate)
+    optim = Adam(learning_rate=learning_rate)
     # Take embedding dim and size from emb_matrix
     embedding_dim = len(emb_matrix[0])
     num_tokens = len(emb_matrix)
@@ -85,7 +85,7 @@ def create_model(Y_train, emb_matrix):
     model = Sequential()
     model.add(Embedding(num_tokens, embedding_dim, embeddings_initializer=Constant(emb_matrix),trainable=False))
     # Here you should add LSTM layers (and potentially dropout)
-    raise NotImplementedError("Add LSTM layer(s) here")
+    model.add(LSTM(embedding_dim))
     # Ultimately, end with dense layer with softmax
     model.add(Dense(input_dim=embedding_dim, units=num_labels, activation="softmax"))
     # Compile model using our settings, check for accuracy
@@ -102,9 +102,21 @@ def train_model(model, X_train, Y_train, X_dev, Y_dev):
     epochs = 50
     # Early stopping: stop training when there are three consecutive epochs without improving
     # It's also possible to monitor the training loss with monitor="loss"
-    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
     # Finally fit the model to our data
-    model.fit(X_train, Y_train, verbose=verbose, epochs=epochs, callbacks=[callback], batch_size=batch_size, validation_data=(X_dev, Y_dev))
+    history = model.fit(X_train, Y_train, verbose=verbose, epochs=epochs, callbacks=[callback], batch_size=batch_size, validation_data=(X_dev, Y_dev))
+
+    # Plot a loss curve.
+    train_loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    plt.title("Train and Dev Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.plot(range(1, len(train_loss) + 1), train_loss, label="train")
+    plt.plot(range(1, len(train_loss) + 1), val_loss, label="dev")
+    plt.legend()
+    plt.savefig("loss.pdf", bbox_inches="tight", format="pdf")
+
     # Print final accuracy for the model (clearer overview)
     test_set_predict(model, X_dev, Y_dev, "dev")
     return model
