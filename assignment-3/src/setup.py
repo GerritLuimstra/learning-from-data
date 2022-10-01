@@ -1,5 +1,5 @@
 """
-This file generates the cross validation and inference split in a stratified manner.
+This file generates the train, dev, and test splits.
 """
 
 import numpy as np
