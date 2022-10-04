@@ -80,7 +80,7 @@ def create_model(Y_train, emb_matrix):
     # Take embedding dim and size from emb_matrix
     embedding_dim = len(emb_matrix[0])
     num_tokens = len(emb_matrix)
-    num_labels = len(Y_train[0])
+    num_labels = len(set(Y_train))
     # Now build the model
     model = Sequential()
     model.add(Embedding(num_tokens, embedding_dim, embeddings_initializer=Constant(emb_matrix),trainable=False))
