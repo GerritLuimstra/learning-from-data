@@ -233,6 +233,9 @@ def create_language_model(model_name, settings):
     model = TFAutoModelForSequenceClassification.from_pretrained(model_name,
                                                                  num_labels=6)
 
+    # Decide whether we want to fine-tune the language model.
+    model.layers[0].trainable = settings.trainable
+
     # Compile the model using our settings, check for accuracy.
     loss_function = CategoricalCrossentropy(from_logits=True)
     optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
