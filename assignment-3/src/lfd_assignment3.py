@@ -18,12 +18,11 @@ from tensorflow.keras.layers import (Bidirectional, Dense, Embedding, LSTM,
 from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam, SGD
-from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
+from transformers import (AutoTokenizer, TFAutoModelForSequenceClassification,
+                          enable_full_determinism)
 
-# Make results reproducible as much as possible.
-np.random.seed(1234)
-tf.random.set_seed(1234)
-python_random.seed(1234)
+# Make results reproducible.
+enable_full_determinism(1234)
 
 
 class ModelSettings(NamedTuple):
