@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''TODO: add high-level description of this Python script'''
+"""TODO: add high-level description of this Python script"""
 
 import argparse
 import json
@@ -15,8 +15,10 @@ import tensorflow as tf
 from tensorflow.keras.initializers import Constant
 from tensorflow.keras.layers import (Bidirectional, Dense, Embedding, LSTM,
                                      TextVectorization)
+from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam, SGD
+from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 
 # Make results reproducible as much as possible.
 np.random.seed(1234)
@@ -32,7 +34,6 @@ class ModelSettings(NamedTuple):
     trainable: bool
     learning_rate: float
     optimizer: str
-    loss_function: str
     layers: int
     dropout: float
     recurrent_dropout: float
@@ -53,13 +54,15 @@ def create_arg_parser():
     """Create an argument parser and return the parsed command line input."""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--train_file", default='data/train.txt',
+    parser.add_argument("-i", "--train_file", default="data/train.txt",
                         type=str, help="Input file to learn from")
-    parser.add_argument("-d", "--dev_file", type=str, default='data/dev.txt',
+    parser.add_argument("-d", "--dev_file", type=str, default="data/dev.txt",
                         help="Separate dev set to read in")
     parser.add_argument("-t", "--test_file", type=str,
                         help="If added, use trained model to predict on test \
                         set")
+    parser.add_argument("-lm", "--language_model", type=str,
+                        help="If added, the pre-trained language model to use")
     parser.add_argument("-s", "--sequence_length", type=int, default=50,
                         help="Number of tokens before the input is cut off")
     parser.add_argument("-e", "--embeddings", type=str,
@@ -75,10 +78,6 @@ def create_arg_parser():
     parser.add_argument("-o", "--optimizer", choices=["sgd", "adam"],
                         default="sgd", help="Optimizer used to train the \
                         model")
-    parser.add_argument("-lf", "--loss_function",
-                        choices=["categorical_crossentropy"],
-                        default="categorical_crossentropy",
-                        help="Loss function used to train the model")
     parser.add_argument("-ly", "--layers", type=int, default=1,
                         help="Number of LSTM layers in the model")
     parser.add_argument("-do", "--dropout", type=float, default=0,
@@ -113,8 +112,7 @@ def read_args():
     args = create_arg_parser()
     model_settings = ModelSettings(args.embeddings, args.embedding_dimension,
                                    args.trainable, args.learning_rate,
-                                   args.optimizer, args.loss_function,
-                                   args.layers, args.dropout,
+                                   args.optimizer, args.layers, args.dropout,
                                    args.recurrent_dropout, args.bidirectional)
     train_settings = TrainSettings(args.epochs, args.batch_size, args.patience,
                                    args.verbose, args.loss_plot)
@@ -126,7 +124,7 @@ def read_corpus(corpus_file):
 
     documents = []
     labels = []
-    with open(corpus_file, encoding='utf-8') as corpus:
+    with open(corpus_file, encoding="utf-8") as corpus:
         for line in corpus:
             tokens = line.strip()
             documents.append(" ".join(tokens.split()[3:]).strip())
@@ -138,7 +136,7 @@ def read_corpus(corpus_file):
 def read_embeddings(embeddings_file):
     """Read in word embeddings from a JSON file and save as a NumPy array."""
 
-    embeddings = json.load(open(embeddings_file, 'r'))
+    embeddings = json.load(open(embeddings_file, "r"))
     return {word: np.array(embeddings[word]) for word in embeddings}
 
 
@@ -183,8 +181,8 @@ def create_lstm_layers(num_layers, units, dropout, recurrent_dropout):
     return layers
 
 
-def create_model(Y_train, embedding_matrix, settings):
-    """Create the Keras model to use."""
+def create_lstm_model(Y_train, embedding_matrix, settings):
+    """Create the LSTM model to use."""
 
     # Get the embedding dimension and size from the embedding matrix.
     embedding_dim = len(embedding_matrix[0])
@@ -220,9 +218,25 @@ def create_model(Y_train, embedding_matrix, settings):
     model.add(Dense(input_dim=embedding_dim, units=num_labels,
                     activation="softmax"))
 
-    # Compile model using our settings, check for accuracy.
+    # Compile the model using our settings, check for accuracy.
     optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
-    model.compile(loss=settings.loss_function, optimizer=optimizer,
+    model.compile(loss="categorical_crossentropy", optimizer=optimizer,
+                  metrics=["accuracy"])
+
+    return model
+
+
+def create_language_model(model_name, settings):
+    """Create the pre-trained language model to use."""
+
+    # Load the pre-trained language model.
+    model = TFAutoModelForSequenceClassification.from_pretrained(model_name,
+                                                                 num_labels=6)
+
+    # Compile the model using our settings, check for accuracy.
+    loss_function = CategoricalCrossentropy(from_logits=True)
+    optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
+    model.compile(loss=loss_function, optimizer=optimizer,
                   metrics=["accuracy"])
 
     return model
@@ -231,8 +245,8 @@ def create_model(Y_train, embedding_matrix, settings):
 def plot_loss(history, file_name):
     """Plot a loss curve from the given model history."""
 
-    train_loss = history['loss']
-    val_loss = history['val_loss']
+    train_loss = history["loss"]
+    val_loss = history["val_loss"]
     plt.title("Train and Dev Loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
@@ -270,6 +284,8 @@ def test_set_predict(model, X_test, Y_test, ident):
 
     # Get predictions using the trained model.
     Y_pred = model.predict(X_test)
+    if isinstance(Y_pred, dict):
+        Y_pred = Y_pred["logits"]  # Get logits in the case of language model.
 
     # Convert to numerical labels to get scores with sklearn.
     Y_pred = np.argmax(Y_pred, axis=1)
@@ -280,11 +296,8 @@ def test_set_predict(model, X_test, Y_test, ident):
     print(f"Accuracy on own {ident} set: {score}")
 
 
-def main():
-    """Main function to train and test neural network given command line
-    arguments."""
-
-    args, model_settings, train_settings = read_args()
+def run_lstm_model(args, model_settings, train_settings):
+    """Constructs, trains, and runs the specified LSTM model."""
 
     # Read in the data.
     X_train, Y_train = read_corpus(args.train_file)
@@ -314,7 +327,7 @@ def main():
     Y_dev_bin = encoder.fit_transform(Y_dev)
 
     # Create the model.
-    model = create_model(Y_train, emb_matrix, model_settings)
+    model = create_lstm_model(Y_train, emb_matrix, model_settings)
 
     # Transform input to vectorized input.
     X_train_vect = vectorizer(np.array([[s] for s in X_train])).numpy()
@@ -335,5 +348,62 @@ def main():
         test_set_predict(model, X_test_vect, Y_test_bin, "test")
 
 
-if __name__ == '__main__':
+def run_language_model(args, model_settings, train_settings):
+    """Constructs, trains, and runs the specified pre-trained language
+    model."""
+
+    # Read in the data.
+    X_train, Y_train = read_corpus(args.train_file)
+    X_dev, Y_dev = read_corpus(args.dev_file)
+
+    # Transform string labels to one-hot encodings.
+    encoder = LabelBinarizer()
+    Y_train_bin = encoder.fit_transform(Y_train)
+    Y_dev_bin = encoder.fit_transform(Y_dev)
+
+    # Create the model.
+    model = create_language_model(args.language_model, model_settings)
+
+    # Tokenize the input.
+    tokenizer = AutoTokenizer.from_pretrained(args.language_model)
+    tokens_train = tokenizer(X_train, padding=True,
+                             max_length=args.sequence_length, truncation=True,
+                             return_tensors="np").data
+    tokens_dev = tokenizer(X_dev, padding=True,
+                           max_length=args.sequence_length,
+                           truncation=True, return_tensors="np").data
+
+    # Train the model.
+    model = train_model(model, tokens_train, Y_train_bin, tokens_dev,
+                        Y_dev_bin, train_settings)
+
+    # If specified, do predictions on the test set.
+    if args.test_file:
+        # Read in test set and tokenize.
+        X_test, Y_test = read_corpus(args.test_file)
+        Y_test_bin = encoder.fit_transform(Y_test)
+        tokens_test = tokenizer(X_test, padding=True,
+                                max_length=args.sequence_length,
+                                truncation=True, return_tensors="np").data
+
+        # Do the predictions.
+        test_set_predict(model, tokens_test, Y_test_bin, "test")
+
+
+def main():
+    """Main function to train and test neural network given command line
+    arguments."""
+
+    # Read the command line arguments.
+    args, model_settings, train_settings = read_args()
+
+    # Run a pre-trained language model if specified.
+    if args.language_model:
+        run_language_model(args, model_settings, train_settings)
+    # Run an LSTM model otherwise.
+    else:
+        run_lstm_model(args, model_settings, train_settings)
+
+
+if __name__ == "__main__":
     main()
