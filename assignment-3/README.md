@@ -13,6 +13,18 @@ Our train, development, and test files should already be present in the `data` d
 python src/setup.py
 ```
 
+### Used language models
+The exact version of the used language models can be found in the following table:
+| Algorithm  | Model Name  |
+|---|---|
+| BERT | bert-base-uncased |
+| DistilBERT | distilbert-base-uncased |
+| RoBERTa | roberta-base |
+| AlBERT | albert-base-v2 |
+| Electra | google/electra-base-discriminator |
+| DeBERTa | microsoft/deberta-base |
+| CamemBERT | camembert-base |
+
 ### Running a model
 
 All model parameters we have used in our experiments can be specified as command line arguments. The program will display a description of each available command line argument by specifying the `--help` flag. For example:
