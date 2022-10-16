@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-"""TODO: add high-level description of this Python script"""
+"""
+This script allows for the training and testing of LSTM models and pretained
+language models. All relevant settings can be specified via the command line.
+Use the -h or --help flag to show a help message.
+"""
 
 import argparse
 import json
