@@ -10,7 +10,6 @@ from sklearn.metrics import classification_report
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelBinarizer
 import tensorflow as tf
 from tensorflow.keras.initializers import Constant
@@ -20,14 +19,12 @@ from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from transformers import (AutoTokenizer, TFAutoModelForSequenceClassification,
-                          enable_full_determinism)
+from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 
 # Make results reproducible.
 np.random.seed(1234)
 tf.random.set_seed(1234)
 python_random.seed(1234)
-# enable_full_determinism(1234)
 
 
 class ModelSettings(NamedTuple):
@@ -81,21 +78,22 @@ def create_arg_parser():
     parser.add_argument("-lr", "--learning_rate", type=float, default=5e-3,
                         help="Learning rate used to train the model")
     parser.add_argument("-ld", "--use_lr_decay", default=False,
-                        action="store_true", help="Whether to use Exponential LR decay")
+                        action="store_true", help="Whether to use Exponential \
+                        LR decay")
     parser.add_argument("-o", "--optimizer", choices=["sgd", "adam"],
                         default="sgd", help="Optimizer used to train the \
                         model")
     parser.add_argument("-ly", "--layers", type=int, default=1,
                         help="Number of LSTM layers in the model")
     parser.add_argument("-do", "--dropout", type=float, default=0,
-                        help="Dropout fraction to use for linear transformation \
-                        of inputs in LSTM")
+                        help="Dropout fraction to use for linear \
+                        transformation of inputs in LSTM")
     parser.add_argument("-rdo", "--recurrent_dropout", type=float, default=0,
-                        help="Dropout fraction to use for linear transformation \
-                        of recurrent states in LSTM")
+                        help="Dropout fraction to use for linear \
+                        transformation of recurrent states in LSTM")
     parser.add_argument("-bi", "--bidirectional", default=False,
-                        action="store_true", help="If added, use bidirectional \
-                        LSTM layers in the model")
+                        action="store_true", help="If added, use \
+                        bidirectional LSTM layers in the model")
     parser.add_argument("-ep", "--epochs", type=int, default=50,
                         help="Maximum number of epochs to train the model for")
     parser.add_argument("-p", "--patience", type=int, default=5,
@@ -104,8 +102,8 @@ def create_arg_parser():
     parser.add_argument("-b", "--batch_size", type=int, default=16,
                         help="Batch size used to train the model")
     parser.add_argument("-v", "--verbose", type=int, choices=[0, 1, 2],
-                        default=1, help="Verbosity level of the model training \
-                        process")
+                        default=1, help="Verbosity level of the model \
+                        training process")
     parser.add_argument("-lp", "--loss_plot", type=str,
                         help="If added, file name of loss curve plot")
     args = parser.parse_args()
@@ -119,9 +117,9 @@ def read_args():
     args = create_arg_parser()
     model_settings = ModelSettings(args.embeddings, args.embedding_dimension,
                                    args.trainable, args.learning_rate,
-                                   args.use_lr_decay, args.optimizer, args.layers,
-                                   args.dropout, args.recurrent_dropout,
-                                   args.bidirectional)
+                                   args.use_lr_decay, args.optimizer,
+                                   args.layers, args.dropout,
+                                   args.recurrent_dropout, args.bidirectional)
     train_settings = TrainSettings(args.epochs, args.batch_size, args.patience,
                                    args.verbose, args.loss_plot)
     return args, model_settings, train_settings
@@ -234,7 +232,8 @@ def create_lstm_model(Y_train, embedding_matrix, settings):
         )
         optimizer = create_optimizer(settings.optimizer, lr_schedule)
     else:
-        optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
+        optimizer = create_optimizer(settings.optimizer,
+                                     settings.learning_rate)
 
     # Compile the model using our settings, check for accuracy.
     model.compile(loss="categorical_crossentropy", optimizer=optimizer,
@@ -264,7 +263,8 @@ def create_language_model(model_name, settings):
         )
         optimizer = create_optimizer(settings.optimizer, lr_schedule)
     else:
-        optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
+        optimizer = create_optimizer(settings.optimizer,
+                                     settings.learning_rate)
 
     model.compile(loss=loss_function, optimizer=optimizer,
                   metrics=["accuracy"])
@@ -323,9 +323,8 @@ def test_set_predict(model, X_test, Y_test, ident, labels):
     Y_pred = np.argmax(Y_pred, axis=1)
     Y_test = np.argmax(Y_test, axis=1)
 
-    # Compute and print the final accuracy.
-    score = round(accuracy_score(Y_test, Y_pred), 3)
-    print(f"Accuracy on own {ident} set: {score}")
+    # Print a classification report.
+    print(f"Classification results on {ident} set:")
     print(classification_report(Y_test, Y_pred, target_names=labels))
 
 
@@ -378,7 +377,8 @@ def run_lstm_model(args, model_settings, train_settings):
         X_test_vect = vectorizer(np.array([[s] for s in X_test])).numpy()
 
         # Do the predictions.
-        test_set_predict(model, X_test_vect, Y_test_bin, "test", encoder.classes_)
+        test_set_predict(model, X_test_vect, Y_test_bin, "test",
+                         encoder.classes_)
 
 
 def run_language_model(args, model_settings, train_settings):
@@ -420,7 +420,8 @@ def run_language_model(args, model_settings, train_settings):
                                 truncation=True, return_tensors="np").data
 
         # Do the predictions.
-        test_set_predict(model, tokens_test, Y_test_bin, "test", encoder.classes_)
+        test_set_predict(model, tokens_test, Y_test_bin, "test",
+                         encoder.classes_)
 
 
 def main():
@@ -440,5 +441,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-#%%
