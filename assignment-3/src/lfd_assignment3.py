@@ -80,7 +80,7 @@ def create_arg_parser():
                         layer is updated during training")
     parser.add_argument("-lr", "--learning_rate", type=float, default=5e-3,
                         help="Learning rate used to train the model")
-    parser.add_argument("-ld", "--use_lr_decay", default=False, 
+    parser.add_argument("-ld", "--use_lr_decay", default=False,
                         action="store_true", help="Whether to use Exponential LR decay")
     parser.add_argument("-o", "--optimizer", choices=["sgd", "adam"],
                         default="sgd", help="Optimizer used to train the \
@@ -118,9 +118,9 @@ def read_args():
 
     args = create_arg_parser()
     model_settings = ModelSettings(args.embeddings, args.embedding_dimension,
-                                   args.trainable, args.learning_rate, 
-                                   args.use_lr_decay, args.optimizer, args.layers, 
-                                   args.dropout, args.recurrent_dropout, 
+                                   args.trainable, args.learning_rate,
+                                   args.use_lr_decay, args.optimizer, args.layers,
+                                   args.dropout, args.recurrent_dropout,
                                    args.bidirectional)
     train_settings = TrainSettings(args.epochs, args.batch_size, args.patience,
                                    args.verbose, args.loss_plot)
@@ -235,7 +235,7 @@ def create_lstm_model(Y_train, embedding_matrix, settings):
         optimizer = create_optimizer(settings.optimizer, lr_schedule)
     else:
         optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
-    
+
     # Compile the model using our settings, check for accuracy.
     model.compile(loss="categorical_crossentropy", optimizer=optimizer,
                   metrics=["accuracy"])
@@ -265,7 +265,7 @@ def create_language_model(model_name, settings):
         optimizer = create_optimizer(settings.optimizer, lr_schedule)
     else:
         optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
-    
+
     model.compile(loss=loss_function, optimizer=optimizer,
                   metrics=["accuracy"])
 
@@ -399,7 +399,7 @@ def run_language_model(args, model_settings, train_settings):
 
     # Tokenize the input.
     tokenizer = AutoTokenizer.from_pretrained(args.language_model)
-    tokens_train = tokenizer(X_train, padding=True, 
+    tokens_train = tokenizer(X_train, padding=True,
                              max_length=args.sequence_length, truncation=True,
                              return_tensors="np").data
     tokens_dev = tokenizer(X_dev, padding=True,
