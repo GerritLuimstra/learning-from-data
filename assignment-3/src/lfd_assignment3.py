@@ -78,7 +78,7 @@ def create_arg_parser():
     parser.add_argument("-tr", "--trainable", default=False,
                         action="store_true", help="Whether the embedding \
                         layer is updated during training")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4,
+    parser.add_argument("-lr", "--learning_rate", type=float, default=5e-3,
                         help="Learning rate used to train the model")
     parser.add_argument("-ld", "--use_lr_decay", default=False, 
                         action="store_true", help="Whether to use Exponential LR decay")
@@ -98,7 +98,7 @@ def create_arg_parser():
                         LSTM layers in the model")
     parser.add_argument("-ep", "--epochs", type=int, default=50,
                         help="Maximum number of epochs to train the model for")
-    parser.add_argument("-p", "--patience", type=int, default=3,
+    parser.add_argument("-p", "--patience", type=int, default=5,
                         help="Number of epochs with no improvement before \
                         training is stopped early")
     parser.add_argument("-b", "--batch_size", type=int, default=16,
