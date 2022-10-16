@@ -6,10 +6,11 @@ import argparse
 import json
 import random as python_random
 from typing import NamedTuple
-from sklearn.metrics import classification_report
 
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.metrics import (classification_report, ConfusionMatrixDisplay,
+                             confusion_matrix)
 from sklearn.preprocessing import LabelBinarizer
 import tensorflow as tf
 from tensorflow.keras.initializers import Constant
@@ -326,6 +327,10 @@ def test_set_predict(model, X_test, Y_test, ident, labels):
     # Print a classification report.
     print(f"Classification results on {ident} set:")
     print(classification_report(Y_test, Y_pred, target_names=labels))
+    ConfusionMatrixDisplay(
+        confusion_matrix=confusion_matrix(Y_pred, Y_test),
+        display_labels=labels).plot()
+    plt.show()
 
 
 def run_lstm_model(args, model_settings, train_settings):
