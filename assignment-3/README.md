@@ -30,7 +30,7 @@ python src/lfd_assignment3.py -e=data/glove_reviews.json -o=adam -lr=1e-3 -s=100
 ```
 Our best pretrained language model can be run using:
 ```{bash}
-python src/lfd_assignment3.py -lm=bert-base-uncased -tr -b=32 -s=100 -o=adam -lr=5e-5 -ld
+python src/lfd_assignment3.py -lm=bert-base-uncased -tr -b=32 -s=100 -o=adam -lr=5e-5 -ld -p=3
 ```
 
 These commands will print out a classification report. A confusion matrix will be plotted and saved if the `--confusion_matrix` flag is provided. To run these models on the test set the argument `-t=data/test.txt` should be provided.
