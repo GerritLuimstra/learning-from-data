@@ -3,11 +3,11 @@ This file generates the train, dev, and test splits.
 """
 
 import numpy as np
-from helpers import read_corpus
+from lfd_assignment3 import read_corpus
 from sklearn.model_selection import train_test_split
 
 # Read in the data
-X, y = read_corpus("data/reviews.txt", False)
+X, y = read_corpus("data/reviews.txt")
 
 # Define the split ratio (60%/20%/20%).
 train_size = 0.6
