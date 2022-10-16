@@ -368,7 +368,7 @@ def run_lstm_model(args, model_settings, train_settings):
 
     # Train the model.
     model = train_model(model, X_train_vect, Y_train_bin, X_dev_vect,
-                        Y_dev_bin, train_settings, encoder.labels_)
+                        Y_dev_bin, train_settings, encoder.classes_)
 
     # If specified, do predictions on the test set.
     if args.test_file:
@@ -378,7 +378,7 @@ def run_lstm_model(args, model_settings, train_settings):
         X_test_vect = vectorizer(np.array([[s] for s in X_test])).numpy()
 
         # Do the predictions.
-        test_set_predict(model, X_test_vect, Y_test_bin, "test")
+        test_set_predict(model, X_test_vect, Y_test_bin, "test", encoder.classes_)
 
 
 def run_language_model(args, model_settings, train_settings):
