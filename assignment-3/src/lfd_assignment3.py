@@ -17,6 +17,7 @@ from tensorflow.keras.initializers import Constant
 from tensorflow.keras.layers import (Bidirectional, Dense, Embedding, LSTM,
                                      TextVectorization)
 from tensorflow.keras.losses import CategoricalCrossentropy
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
@@ -327,6 +328,10 @@ def test_set_predict(model, X_test, Y_test, ident, labels):
     score = round(accuracy_score(Y_test, Y_pred), 3)
     print(f"Accuracy on own {ident} set: {score}")
     print(classification_report(Y_test, Y_pred, target_names=labels))
+    ConfusionMatrixDisplay(
+        confusion_matrix=confusion_matrix(Y_pred, Y_test), 
+        display_labels=labels).plot()
+    plt.show()
 
 
 def run_lstm_model(args, model_settings, train_settings):
