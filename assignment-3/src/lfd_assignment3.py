@@ -6,6 +6,7 @@ import argparse
 import json
 import random as python_random
 from typing import NamedTuple
+from sklearn.metrics import classification_report
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,11 +19,15 @@ from tensorflow.keras.layers import (Bidirectional, Dense, Embedding, LSTM,
 from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam, SGD
+from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from transformers import (AutoTokenizer, TFAutoModelForSequenceClassification,
                           enable_full_determinism)
 
 # Make results reproducible.
-enable_full_determinism(1234)
+np.random.seed(1234)
+tf.random.set_seed(1234)
+python_random.seed(1234)
+# enable_full_determinism(1234)
 
 
 class ModelSettings(NamedTuple):
@@ -32,6 +37,7 @@ class ModelSettings(NamedTuple):
     embedding_dimension: int
     trainable: bool
     learning_rate: float
+    use_lr_decay: bool
     optimizer: str
     layers: int
     dropout: float
@@ -70,10 +76,12 @@ def create_arg_parser():
                         help="Dimension of the embeddings, ignored if a \
                         embedding file is specified")
     parser.add_argument("-tr", "--trainable", default=False,
-                        action="store_true", help="Whether we the embedding \
+                        action="store_true", help="Whether the embedding \
                         layer is updated during training")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4,
                         help="Learning rate used to train the model")
+    parser.add_argument("-ld", "--use_lr_decay", default=False, 
+                        action="store_true", help="Whether to use Exponential LR decay")
     parser.add_argument("-o", "--optimizer", choices=["sgd", "adam"],
                         default="sgd", help="Optimizer used to train the \
                         model")
@@ -110,9 +118,10 @@ def read_args():
 
     args = create_arg_parser()
     model_settings = ModelSettings(args.embeddings, args.embedding_dimension,
-                                   args.trainable, args.learning_rate,
-                                   args.optimizer, args.layers, args.dropout,
-                                   args.recurrent_dropout, args.bidirectional)
+                                   args.trainable, args.learning_rate, 
+                                   args.use_lr_decay, args.optimizer, args.layers, 
+                                   args.dropout, args.recurrent_dropout, 
+                                   args.bidirectional)
     train_settings = TrainSettings(args.epochs, args.batch_size, args.patience,
                                    args.verbose, args.loss_plot)
     return args, model_settings, train_settings
@@ -159,7 +168,6 @@ def get_embedding_matrix(vocabulary, embeddings):
 
 def create_optimizer(name, learning_rate):
     """Create an optimizer object based on its name."""
-
     optimizer_dict = {"sgd": SGD, "adam": Adam}
     return optimizer_dict[name](learning_rate=learning_rate)
 
@@ -217,8 +225,18 @@ def create_lstm_model(Y_train, embedding_matrix, settings):
     model.add(Dense(input_dim=embedding_dim, units=num_labels,
                     activation="softmax"))
 
+    # Setup the optimizer
+    if settings.use_lr_decay:
+        lr_schedule = ExponentialDecay(
+            initial_learning_rate=settings.learning_rate,
+            decay_steps=1000,
+            decay_rate=0.9
+        )
+        optimizer = create_optimizer(settings.optimizer, lr_schedule)
+    else:
+        optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
+    
     # Compile the model using our settings, check for accuracy.
-    optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
     model.compile(loss="categorical_crossentropy", optimizer=optimizer,
                   metrics=["accuracy"])
 
@@ -237,9 +255,21 @@ def create_language_model(model_name, settings):
 
     # Compile the model using our settings, check for accuracy.
     loss_function = CategoricalCrossentropy(from_logits=True)
-    optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
+
+    if settings.use_lr_decay:
+        lr_schedule = ExponentialDecay(
+            initial_learning_rate=settings.learning_rate,
+            decay_steps=1_000,
+            decay_rate=0.9
+        )
+        optimizer = create_optimizer(settings.optimizer, lr_schedule)
+    else:
+        optimizer = create_optimizer(settings.optimizer, settings.learning_rate)
+    
     model.compile(loss=loss_function, optimizer=optimizer,
                   metrics=["accuracy"])
+
+    print(model.summary())
 
     return model
 
@@ -258,7 +288,7 @@ def plot_loss(history, file_name):
     plt.savefig(file_name, bbox_inches="tight", format="pdf")
 
 
-def train_model(model, X_train, Y_train, X_dev, Y_dev, settings):
+def train_model(model, X_train, Y_train, X_dev, Y_dev, settings, labels):
     """Trains the model using the specified training and validation sets."""
 
     # Stop training when there are some number (3 by default) consecutive
@@ -277,11 +307,11 @@ def train_model(model, X_train, Y_train, X_dev, Y_dev, settings):
         plot_loss(history.history, settings.loss_plot)
 
     # Print the final accuracy for the model.
-    test_set_predict(model, X_dev, Y_dev, "dev")
+    test_set_predict(model, X_dev, Y_dev, "dev", labels)
     return model
 
 
-def test_set_predict(model, X_test, Y_test, ident):
+def test_set_predict(model, X_test, Y_test, ident, labels):
     """Do predictions and measure accuracy on the given test set."""
 
     # Get predictions using the trained model.
@@ -296,6 +326,7 @@ def test_set_predict(model, X_test, Y_test, ident):
     # Compute and print the final accuracy.
     score = round(accuracy_score(Y_test, Y_pred), 3)
     print(f"Accuracy on own {ident} set: {score}")
+    print(classification_report(Y_test, Y_pred, target_names=labels))
 
 
 def run_lstm_model(args, model_settings, train_settings):
@@ -337,7 +368,7 @@ def run_lstm_model(args, model_settings, train_settings):
 
     # Train the model.
     model = train_model(model, X_train_vect, Y_train_bin, X_dev_vect,
-                        Y_dev_bin, train_settings)
+                        Y_dev_bin, train_settings, encoder.labels_)
 
     # If specified, do predictions on the test set.
     if args.test_file:
@@ -368,7 +399,7 @@ def run_language_model(args, model_settings, train_settings):
 
     # Tokenize the input.
     tokenizer = AutoTokenizer.from_pretrained(args.language_model)
-    tokens_train = tokenizer(X_train, padding=True,
+    tokens_train = tokenizer(X_train, padding=True, 
                              max_length=args.sequence_length, truncation=True,
                              return_tensors="np").data
     tokens_dev = tokenizer(X_dev, padding=True,
@@ -377,7 +408,7 @@ def run_language_model(args, model_settings, train_settings):
 
     # Train the model.
     model = train_model(model, tokens_train, Y_train_bin, tokens_dev,
-                        Y_dev_bin, train_settings)
+                        Y_dev_bin, train_settings, encoder.classes_)
 
     # If specified, do predictions on the test set.
     if args.test_file:
@@ -389,7 +420,7 @@ def run_language_model(args, model_settings, train_settings):
                                 truncation=True, return_tensors="np").data
 
         # Do the predictions.
-        test_set_predict(model, tokens_test, Y_test_bin, "test")
+        test_set_predict(model, tokens_test, Y_test_bin, "test", encoder.classes_)
 
 
 def main():
@@ -409,3 +440,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#%%
