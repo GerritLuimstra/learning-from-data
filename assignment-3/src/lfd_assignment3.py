@@ -51,6 +51,7 @@ class TrainSettings(NamedTuple):
     patience: int
     verbose: int
     loss_plot: str
+    confusion_matrix: bool
 
 
 def create_arg_parser():
@@ -107,6 +108,9 @@ def create_arg_parser():
                         training process")
     parser.add_argument("-lp", "--loss_plot", type=str,
                         help="If added, file name of loss curve plot")
+    parser.add_argument("-cm", "--confusion_matrix", default=False,
+                        action="store_true", help="If added, plot and save a \
+                        confusion matrix")
     args = parser.parse_args()
     return args
 
@@ -122,7 +126,8 @@ def read_args():
                                    args.layers, args.dropout,
                                    args.recurrent_dropout, args.bidirectional)
     train_settings = TrainSettings(args.epochs, args.batch_size, args.patience,
-                                   args.verbose, args.loss_plot)
+                                   args.verbose, args.loss_plot,
+                                   args.confusion_matrix)
     return args, model_settings, train_settings
 
 
@@ -308,11 +313,12 @@ def train_model(model, X_train, Y_train, X_dev, Y_dev, settings, labels):
         plot_loss(history.history, settings.loss_plot)
 
     # Print the final accuracy for the model.
-    test_set_predict(model, X_dev, Y_dev, "dev", labels)
+    test_set_predict(model, X_dev, Y_dev, "dev", labels,
+                     settings.confusion_matrix)
     return model
 
 
-def test_set_predict(model, X_test, Y_test, ident, labels):
+def test_set_predict(model, X_test, Y_test, ident, labels, plot_cm):
     """Do predictions and measure accuracy on the given test set."""
 
     # Get predictions using the trained model.
@@ -327,10 +333,14 @@ def test_set_predict(model, X_test, Y_test, ident, labels):
     # Print a classification report.
     print(f"Classification results on {ident} set:")
     print(classification_report(Y_test, Y_pred, target_names=labels))
-    ConfusionMatrixDisplay(
-        confusion_matrix=confusion_matrix(Y_pred, Y_test),
-        display_labels=labels).plot()
-    plt.show()
+
+    # Save a confusion matrix if specified.
+    if plot_cm:
+        cm = confusion_matrix(Y_pred, Y_test)
+        ConfusionMatrixDisplay(confusion_matrix=cm,
+                               display_labels=labels).plot()
+        plt.savefig(f"confusion_matrix_{ident}.pdf", bbox_inches="tight",
+                    format="pdf")
 
 
 def run_lstm_model(args, model_settings, train_settings):
@@ -383,7 +393,7 @@ def run_lstm_model(args, model_settings, train_settings):
 
         # Do the predictions.
         test_set_predict(model, X_test_vect, Y_test_bin, "test",
-                         encoder.classes_)
+                         encoder.classes_, train_settings.confusion_matrix)
 
 
 def run_language_model(args, model_settings, train_settings):
@@ -426,7 +436,7 @@ def run_language_model(args, model_settings, train_settings):
 
         # Do the predictions.
         test_set_predict(model, tokens_test, Y_test_bin, "test",
-                         encoder.classes_)
+                         encoder.classes_, train_settings.confusion_matrix)
 
 
 def main():
