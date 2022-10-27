@@ -163,3 +163,5 @@ cython_debug/
 # macOS stuff
 .DS_Store
 **/.DS_Store
+**/**/.DS_Store
+**/**/**/.DS_Store
