@@ -131,7 +131,7 @@ def create_vocabulary(X, stemmer=None, lemmatizer=None, reduce_words=True):
 
     # Obtain all words in the dataset
     flattened = [word for sample in X for word in sample]
-
+    
     # Obtain the unique words and their frequencies
     words, frequency = np.unique(flattened, return_counts=True)
 
