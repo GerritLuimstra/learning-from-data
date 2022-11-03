@@ -108,13 +108,15 @@ def get_predict_args(directory, run):
     return predict_args
 
 
-def get_evaluate_args(directory, run):
+def get_evaluate_args(directory):
     """Get command line arguments for evaluate.py."""
 
     evaluate_args = ""
 
-    evaluate_args += f"-lf {val_file} "
-    evaluate_args += f"-pf {directory}/out/{run}.out "
+    evaluate_args += f"-tf {val_file} "
+    evaluate_args += f"-of {directory}/scores.txt "
+    evaluate_args += f"-pd {directory}/out "
+    evaluate_args += f"-lf {directory}/log/evaluate.log "
 
     return evaluate_args
 
@@ -141,9 +143,9 @@ def main():
         predict_args = get_predict_args(experiments_directory, run)
         os.system(f"python3 predict.py {predict_args}")
 
-        # Evaluate.
-        evaluate_args = get_evaluate_args(experiments_directory, run)
-        os.system(f"python3 evaluate.py {evaluate_args}")
+    # Evaluate all runs.
+    evaluate_args = get_evaluate_args(experiments_directory)
+    os.system(f"python3 evaluate.py {evaluate_args}")
 
 
 if __name__ == "__main__":
