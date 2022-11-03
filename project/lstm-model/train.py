@@ -73,10 +73,10 @@ def create_arg_parser():
     parser.add_argument("-tr", "--trainable", default=False,
                         action="store_true", help="Whether the embedding \
                         layer is updated during training")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=5e-3,
+    parser.add_argument("-lr", "--learning_rate", type=float, default=1e-3,
                         help="Learning rate used to train the model")
     parser.add_argument("-o", "--optimizer", choices=["sgd", "adam"],
-                        default="sgd", help="Optimizer used to train the \
+                        default="adam", help="Optimizer used to train the \
                         model")
     parser.add_argument("-ly", "--layers", type=int, default=1,
                         help="Number of LSTM layers in the model")
@@ -89,9 +89,9 @@ def create_arg_parser():
     parser.add_argument("-bi", "--bidirectional", default=False,
                         action="store_true", help="If added, use \
                         bidirectional LSTM layers in the model")
-    parser.add_argument("-e", "--epochs", type=int, default=50,
+    parser.add_argument("-e", "--epochs", type=int, default=5,
                         help="Maximum number of epochs to train the model for")
-    parser.add_argument("-p", "--patience", type=int, default=5,
+    parser.add_argument("-p", "--patience", type=int, default=3,
                         help="Number of epochs with no improvement before \
                         training is stopped early")
     parser.add_argument("-b", "--batch_size", type=int, default=16,
