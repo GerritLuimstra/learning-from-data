@@ -21,11 +21,16 @@ from tensorflow.keras.losses import BinaryCrossentropy, CategoricalCrossentropy
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
+from sklearn.metrics import roc_curve, auc
 
 # Make results reproducible.
 np.random.seed(1234)
 tf.random.set_seed(1234)
 python_random.seed(1234)
+
+from tensorflow.keras import mixed_precision
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_global_policy(policy)
 
 
 class ModelSettings(NamedTuple):
@@ -54,7 +59,7 @@ def create_arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--train_file", default="../data/train.tsv",
                         type=str, help="Input file to learn from")
-    parser.add_argument("-d", "--dev_file", type=str, default="../data/test.tsv",
+    parser.add_argument("-d", "--dev_file", type=str, default="../data/dev.tsv",
                         help="Separate dev set to read in")
     parser.add_argument("-t", "--test_file", type=str,
                         help="If added, use trained model to predict on test \
@@ -74,7 +79,7 @@ def create_arg_parser():
     parser.add_argument("-o", "--optimizer", choices=["sgd", "adam"],
                         default="sgd", help="Optimizer used to train the \
                         model")
-    parser.add_argument("-ep", "--epochs", type=int, default=50,
+    parser.add_argument("-ep", "--epochs", type=int, default=10,
                         help="Maximum number of epochs to train the model for")
     parser.add_argument("-p", "--patience", type=int, default=5,
                         help="Number of epochs with no improvement before \
@@ -124,24 +129,22 @@ def create_optimizer(name, learning_rate):
     optimizer_dict = {"sgd": SGD, "adam": Adam}
     return optimizer_dict[name](learning_rate=learning_rate)
 
-
 def create_language_model(model_name, settings):
     """Create the pre-trained language model to use."""
 
     # Load the pre-trained language model.
-    model = TFAutoModelForSequenceClassification.from_pretrained(model_name,
-                                                                 num_labels=2)
+    model = TFAutoModelForSequenceClassification.from_pretrained(model_name, num_labels=1)
 
     # Decide whether we want to fine-tune the language model.
     model.layers[0].trainable = settings.trainable
 
     # Compile the model using our settings, check for accuracy.
-    loss_function = CategoricalCrossentropy(from_logits=True)
+    loss_function = BinaryCrossentropy(from_logits=True)
 
     if settings.use_lr_decay:
         lr_schedule = ExponentialDecay(
             initial_learning_rate=settings.learning_rate,
-            decay_steps=1_000,
+            decay_steps=100,
             decay_rate=0.9
         )
         optimizer = create_optimizer(settings.optimizer, lr_schedule)
@@ -151,7 +154,6 @@ def create_language_model(model_name, settings):
 
     model.compile(loss=loss_function, optimizer=optimizer,
                   metrics=["accuracy"])
-
     print(model.summary())
 
     return model
@@ -199,15 +201,13 @@ def test_set_predict(model, X_test, Y_test, ident, labels, plot_cm):
     """Do predictions and measure accuracy on the given test set."""
 
     # Get predictions using the trained model.
-    Y_pred = model.predict(X_test)["logits"]
-
-    # Convert to numerical labels to get scores with sklearn.
-    Y_pred = np.argmax(Y_pred, axis=1)
-    Y_test = np.argmax(Y_test, axis=1)
+    Y_pred = tf.round(tf.nn.sigmoid(model.predict(X_test)["logits"]))
 
     # Print a classification report.
     print(f"Classification results on {ident} set:")
     print(classification_report(Y_test, Y_pred, target_names=labels))
+    fpr, tpr, _ = roc_curve(Y_test, Y_pred, pos_label=1)
+    print("AUC", auc(fpr, tpr))
 
     # Save a confusion matrix if specified.
     if plot_cm:
@@ -227,11 +227,8 @@ def run_language_model(args, model_settings, train_settings):
     X_dev, Y_dev = read_tweets(args.dev_file)
 
     # Transform labels into binary
-    encoder = LabelBinarizer()
-    Y_train_bin = encoder.fit_transform(Y_train)
-    Y_dev_bin = encoder.fit_transform(Y_dev)
-    Y_train_bin = np.hstack((Y_train_bin, 1 - Y_train_bin))
-    Y_dev_bin = np.hstack((Y_dev_bin, 1 - Y_dev_bin))
+    Y_train_bin = np.array([1 if l == "OFF" else 0 for l in Y_train])
+    Y_dev_bin = np.array([1 if l == "OFF" else 0 for l in Y_dev])
 
     # Create the model.
     model = create_language_model(args.language_model, model_settings)
@@ -247,7 +244,7 @@ def run_language_model(args, model_settings, train_settings):
 
     # Train the model.
     model = train_model(model, tokens_train, Y_train_bin, tokens_dev,
-                        Y_dev_bin, train_settings, encoder.classes_)
+                        Y_dev_bin, train_settings, ["NOT", "OFF"])
 
     # If specified, do predictions on the test set.
     if args.test_file:
