@@ -1,0 +1,15 @@
+artifact_uri: ./mlflow/artifacts/2/86b2e99c01f2445abfcea8a6b07af050/artifacts
+end_time: 1667208898798
+entry_point_name: ''
+experiment_id: '2'
+lifecycle_stage: active
+name: ''
+run_id: 86b2e99c01f2445abfcea8a6b07af050
+run_uuid: 86b2e99c01f2445abfcea8a6b07af050
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1667208898546
+status: 3
+tags: []
+user_id: sven

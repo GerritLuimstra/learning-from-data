@@ -75,8 +75,8 @@ def parse_values(values):
     """
     values_ = []
     for value in values:
-        if "kra" in value:
-            values_.append(value.replace("kra", ""))
+        if "x" in value:
+            values_.append(value.replace("x", ""))
         elif "." in value:
             values_.append(float(value))
         elif value == "None":

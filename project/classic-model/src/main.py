@@ -22,9 +22,7 @@ import mlflow.sklearn
 import random
 
 # Ensure reproducability
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
+SEEDS = [1,2,3,4,5]
 
 if __name__ == "__main__":
 
@@ -46,6 +44,10 @@ if __name__ == "__main__":
     X_train, y_train = read_corpus(args.train_file)
     X_dev, y_dev = read_corpus(args.dev_file)
     
+    if args.inference_file is not None:
+        # Load in the inference data
+        X_inf, y_inf = read_corpus(args.inference_file)
+        
     # Setup the classifier mapping
     classifiers = {
         'dt': DecisionTreeClassifier, 'knn': KNeighborsClassifier, 
@@ -67,53 +69,71 @@ if __name__ == "__main__":
 
     vec = CountVectorizer()
 
-    # Transform the input data to the new vocabulary
-    X_train = vec.fit_transform(X_train)
-    X_dev = vec.transform(X_dev)
-
-    # Create the classifier with the given parameters
-    classifier = classifiers[args.model_name](**param_dict)
-    
-    # Fit the classifier to the train data
-    classifier.fit(X_train, y_train)
-
     # Setup the connection to ML flow (for tracking)
     mlflow.set_tracking_uri("http://localhost:5050")
-    _ = mlflow.set_experiment("Learning From Data Project - Classic Model (BoW)")
+    _ = mlflow.set_experiment("Learning From Data Project - Classical Model (BoW) New")
 
     # Start the experiment
     with mlflow.start_run():
 
         # Log the experiment in ML flow
-        mlflow.log_param("SEED", SEED)
-        mlflow.log_param("MODEL NAME", classifier.__class__.__name__)
-        mlflow.log_param("VOCAB SIZE", len(vec.vocabulary_))
-        mlflow.log_params(classifier.get_params())
+        mlflow.log_param("SEEDS", SEEDS)
 
-        # Obtain the scores on the train set
-        y_pred = classifier.predict(X_train)
-        mlflow.log_metric("f1_weighted_train", f1_score(y_train, y_pred, average='weighted'))
+        f1_macro_train = []
+        f1_macro_dev = []
+        f1_macro_test = []
+        for seed in SEEDS:
+            random.seed(seed)
+            np.random.seed(seed)
 
-        # Obtain the scores on the dev set
-        y_pred = classifier.predict(X_dev)
-        mlflow.log_metric("f1_weighted_dev", f1_score(y_dev, y_pred, average='weighted'))
-        mlflow.log_text(classification_report(y_dev, y_pred), "classification_report.txt")
+            # Transform the input data to the new vocabulary
+            X_train_vec = vec.fit_transform(X_train)
+            X_dev_vec = vec.transform(X_dev)
 
+            # Log the vocabulary size
+            mlflow.log_param("VOCAB SIZE", len(vec.vocabulary_))
+        
+            # Create the classifier with the given parameters
+            classifier = classifiers[args.model_name](**param_dict)
 
-    if args.inference_file is not None:
+            # Log the model name and parameters
+            mlflow.log_param("MODEL NAME", classifier.__class__.__name__)
+            mlflow.log_params(classifier.get_params())
 
-        # Load in the inference data
-        X_inf, y_inf = read_corpus(args.inference_file)
+            # Fit the classifier to the train data
+            classifier.fit(X_train_vec, y_train)
+            
+            # Obtain the scores on the train set
+            y_pred = classifier.predict(X_train_vec)
+            f1_macro_train.append(f1_score(y_train, y_pred, average='macro'))
+            
+            y_pred = classifier.predict(X_dev_vec) 
+            f1_macro_dev.append(f1_score(y_dev, y_pred, average='macro'))
+            classification_summary_dev = classification_report(y_dev, y_pred)
 
-        # Transform the input data to the new vocabulary
-        X_inf = vec.fit_transform(X_inf)
+            if args.inference_file is not None:
+                # Transform the input data to the new vocabulary
+                X_inf_vec = vec.transform(X_inf)
 
-        # Obtain the scores on the inference set
-        y_pred = classifier.predict(X_inf)
+                # Obtain the model predictions and score
+                y_pred = classifier.predict(X_inf_vec)
+                f1_macro_test.append(f1_score(y_inf, y_pred, average='macro'))
+                classification_summary_test = classification_report(y_inf, y_pred)
 
-        print("f1_weighted", f1_score(y_inf, y_pred, average='weighted'))
-        print(classification_report(y_inf, y_pred))
+        mlflow.log_metric("f1_macro_train_mean", np.mean(f1_macro_train))
+        mlflow.log_metric("f1_macro_train_std", np.std(f1_macro_train))
+        mlflow.log_metric("f1_macro_dev_mean", np.mean(f1_macro_dev))
+        mlflow.log_metric("f1_macro_dev_std", np.std(f1_macro_dev))
+        mlflow.log_text(classification_summary_dev, "classification_report.txt")
 
-        # Display the confusion matrix
-        plot_confusion_matrix(classifier, X_inf, y_inf)
-        plt.show()
+        if args.inference_file is not None:
+            print("f1_macro_test_mean", np.mean(f1_macro_test))
+            print("f1_macro_test_std", np.std(f1_macro_test))
+            print(classification_summary_test)
+
+            # Display the confusion matrix
+            plot_confusion_matrix(classifier, X_inf_vec, y_inf)
+            plt.show()
+            
+            mlflow.log_metric("f1_macro_test_mean", np.mean(f1_macro_test))
+            mlflow.log_metric("f1_macro_test_std", np.std(f1_macro_test))
