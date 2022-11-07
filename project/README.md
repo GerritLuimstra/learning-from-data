@@ -16,5 +16,5 @@ conda env create -f environment.yml
 ```
 After the environment is created, you can activate it using:
 ```{bash}
-conda activate lstm_model
+conda activate learningfromdata_group20
 ```
