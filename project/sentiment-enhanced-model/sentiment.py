@@ -1,5 +1,5 @@
 """
-This script is used to interpret our best performing LinearSVC model.
+This script is used to interpret and train our best performing models with the sentiment enhanced feature set.
 """
 import random
 import numpy as np
