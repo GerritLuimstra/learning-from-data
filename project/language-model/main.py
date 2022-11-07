@@ -15,9 +15,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import (classification_report, ConfusionMatrixDisplay,
                              confusion_matrix)
-from sklearn.preprocessing import LabelBinarizer, OneHotEncoder
 import tensorflow as tf
-from tensorflow.keras.losses import BinaryCrossentropy, CategoricalCrossentropy
+from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
@@ -27,11 +26,6 @@ from sklearn.metrics import roc_curve, auc
 np.random.seed(1234)
 tf.random.set_seed(1234)
 python_random.seed(1234)
-
-from tensorflow.keras import mixed_precision
-policy = mixed_precision.Policy('mixed_float16')
-mixed_precision.set_global_policy(policy)
-
 
 class ModelSettings(NamedTuple):
     """Settings used to construct the model."""
