@@ -107,7 +107,6 @@ def get_predict_args(directory, run):
 
     return predict_args
 
-
 def get_evaluate_args(directory):
     """Get command line arguments for evaluate.py."""
 

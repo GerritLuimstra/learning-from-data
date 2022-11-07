@@ -43,29 +43,7 @@ def allcaps(text):
     text = text.group()
     return text.lower() + " <allcaps>"
 
-def vanilla_tokenize(text, remove_emojis=True):
-    if remove_emojis:
-        # Remove emoij since they have no embedding.
-        # https://gist.github.com/Alex-Just/e86110836f3f93fe7932290526529cd1
-        emoji_pattern = re.compile(
-            "(["
-            "\U0001F1E0-\U0001F1FF"  # Flags (iOS).
-            "\U0001F300-\U0001F5FF"  # Symbols & pictographs.
-            "\U0001F600-\U0001F64F"  # Emoticons.
-            "\U0001F680-\U0001F6FF"  # Transport & map symbols.
-            "\U0001F700-\U0001F77F"  # Alchemical symbols.
-            "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended.
-            "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C.
-            "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs.
-            "\U0001FA00-\U0001FA6F"  # Chess Symbols.
-            "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A.
-            "\U00002702-\U000027B0"  # Dingbats.
-            "]+)"
-        )
-        text = re.sub(emoji_pattern, r" ", text)  # Space for case word<emoji>word.
-    return text
-
-def glove_tokenize(text, remove_emojis=True):
+def tokenize(text, remove_emojis=True):
     """Tokenize input text."""
 
     # Different regex parts for smiley faces.

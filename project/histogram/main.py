@@ -79,8 +79,15 @@ for bin, patch in zip(bins, patches):
     if len(scores_) == 0:
         patch.set_facecolor("white")
         continue
-    most_common = Counter(scores_).most_common(1)[0][0]
+    
+    most_common = Counter(scores_).most_common()
+    if len(most_common) != 1:
+        alpha = max(most_common[0][1], most_common[1][1]) / len(scores_)
+    else:
+        alpha = 1
+    most_common = most_common[0][0]
     patch.set_facecolor({"OFF": "red", "NOT": "green"}[most_common])
+    patch.set_alpha(alpha)
 
 plt.title("Actual sentiment distribution (maximum absolute value)")
 plt.xlabel("Sentence Sentiment")
@@ -90,13 +97,3 @@ handles = [Rectangle((0,0),1,1,color=c,ec="k") for c in ["red", "green"]]
 labels= ["Offensive", "Not offensive"]
 plt.legend(handles, labels)
 plt.show()
-
-for cutoff in np.linspace(-1.0, 1, 100):
-    y_pred = X_train_scores_ < cutoff
-    y_pred = [{False:"NOT", True:"OFF"}[pred] for pred in y_pred]
-
-    # print(cutoff, np.mean(np.array(y_pred) == np.array(Y_train)))
-    if np.mean(np.array(y_pred) == np.array(Y_train)) > to_beat:
-        print(accuracy_score(y_pred, Y_train))
-        print(f1_score(y_pred, Y_train, pos_label="OFF"))
-        print("yay", cutoff, np.mean(np.array(y_pred) == np.array(Y_train)))
