@@ -3,8 +3,7 @@ This script is used to interpret our best performing LinearSVC model.
 """
 import random
 import numpy as np
-from sklearn.svm import LinearSVC, SVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
 from nltk.stem import WordNetLemmatizer
 from nltk.stem.porter import PorterStemmer
 from helpers import read_corpus
