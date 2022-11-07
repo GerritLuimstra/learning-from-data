@@ -1,6 +1,4 @@
-# Setting up the environment
-
-### Used language models
+# Used language models
 The exact version of the used language models can be found in the following table:
 | Algorithm  | Model Name  |
 |---|---|
@@ -12,7 +10,7 @@ The exact version of the used language models can be found in the following tabl
 | DeBERTa | microsoft/deberta-base |
 | BertTweet | vinai/bertweet-base |
 
-### Running a model
+# Running a model
 
 All model parameters we have used in our experiments can be specified as command line arguments. The program will display a description of each available command line argument by specifying the `--help` flag. For example:
 ```{bash}
@@ -48,6 +46,6 @@ python main.py -lm bert-base-uncased -o adam -ep 10 -lr 0.005 -b 64 -s 100      
 python main.py -lm distilbert-base-uncased -o adam -ep 10 -lr 0.000005 -b 128 -s 100 --trainable          # W: 0.81, AUC: 0.782, M: 0.79
 ```
 
-These commands will print out a classification report. A confusion matrix will be plotted and saved if the `--confusion_matrix` flag is provided. To run these models on the test set the argument `-t=../data/test.txt` should be provided.
+These commands will print out a classification report. A confusion matrix will be plotted and saved if the `--confusion_matrix` flag is provided. To run these models on the test set the argument `-t=../data/test.tsv` should be provided.
 
 **NOTE**: All these examples assume that the code is run from the same directory as this README file. If you want to run the code from another directory the paths shown above should be updated to reflect this. Additionally, the correct paths to the train and developments files will need to be specified manually.
