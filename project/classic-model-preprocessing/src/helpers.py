@@ -1,12 +1,11 @@
-"""
-This script provides helper functions for the main program
-"""
-
 import argparse
 import numpy as np
+from nltk import pos_tag
+import regex as re
+import sys
 import emoji
-import re
-import string
+
+FLAGS = re.MULTILINE | re.DOTALL
 
 def read_corpus(corpus_file):
     """
@@ -59,12 +58,14 @@ def create_arg_parser():
                         help="Whether to use Lemmatization (default False)")
     parser.add_argument("-s", "--stemming", action="store_true",
                         help="Whether to use Stemming (default False).")
-    parser.add_argument("-nr", "--no_reduce_words", action="store_true", default=False,
-                        help="Do not reduce words by removing stopwords and only considering words in the english dictionary.")
     parser.add_argument("-n", "--ngram_range", type=int, default=1, 
                         help="The upper n-gram range. This includes n-grams in the range (1, n). (default 1)")
-    parser.add_argument("-p", "--pos_tagging", action="store_true", default=False, 
-                        help="Consider part-of-speech tagging .")
+    parser.add_argument("-g", "--glove", action="store_true", default=False, 
+                        help="Preprocess the data using glove embedding.")
+    parser.add_argument("-pt", "--pos_tags", action="store_true", default=False, 
+                        help="Use pos tagging to filter words.")
+    parser.add_argument("-r", "--remove_emojis", action="store_true", default=False, 
+                        help="Remove emojis.")
     parser.add_argument("-m", "--model_name", type=str, default='nb', help="The model to use. Can be one of ['nb', 'dt', 'rf', 'knn', 'svm']")
     parser.add_argument("-a", "--args", default=[], nargs='+', help="The arguments passed to the ML model")
     args = parser.parse_args()
@@ -100,96 +101,181 @@ def parse_values(values):
             values_.append(int(value))
     return values_
 
-def my_preprocessor(doc, stemmer=None, lemmatizer=None, reduce_words=True, pos_tagging=False):
+def hashtag(text):
+    """Break input text into words and add <hashtag> token."""
+
+    text = text.group()
+    hashtag_body = text[1:]
+
+    # All-caps hashtags are one word with <allcaps> token.
+    if hashtag_body.isupper():
+        result = f"<hashtag> {hashtag_body.lower()} <allcaps>"
+    # Other hashtags are broken up using CamelCase rules.
+    else:
+        words = re.split(r"(?=[A-Z])", hashtag_body, flags=FLAGS)
+        words = list(filter(None, words))
+        result = " ".join(["<hashtag>"] + words)
+    return result
+
+
+def allcaps(text):
+    """Lower case input text and append an <allcaps> token."""
+
+    text = text.group()
+    return text.lower() + " <allcaps>"
+
+def remove_emojis(text):
+    """ Remove emoijs
+        https://gist.github.com/Alex-Just/e86110836f3f93fe7932290526529cd1
     """
-    Used by the vectorizers to preprocesses the documents (tweets) from our data set.
+    emoji_pattern = re.compile(
+        "(["
+        "\U0001F1E0-\U0001F1FF"  # Flags (iOS).
+        "\U0001F300-\U0001F5FF"  # Symbols & pictographs.
+        "\U0001F600-\U0001F64F"  # Emoticons.
+        "\U0001F680-\U0001F6FF"  # Transport & map symbols.
+        "\U0001F700-\U0001F77F"  # Alchemical symbols.
+        "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended.
+        "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C.
+        "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs.
+        "\U0001FA00-\U0001FA6F"  # Chess Symbols.
+        "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A.
+        "\U00002702-\U000027B0"  # Dingbats.
+        "]+)"
+    )
+    text = re.sub(emoji_pattern, r" ", text)  # Space for case word<emoji>word.
+    return text
 
-    The following steps are performed:
-    - Removal of words that contain numbers
-    - Removal of special characters
-    - Removal of words that are not part of the English dictionary
-    - Removal of stopwords
-    - Stemming or Lemmatization on each term
-    
-    Parameters
-    ----------
-        doc : string 
-            Referring to a tweet, to be preprocessed
-        stemmer : PorterStemmer
-            The stemmer to be used (optional)
-        lemmatizer : WordNetLemmatizer
-            The lemmatizer to be used (optional)
-        reduce_words : boolean
-            Whether or not to reduce the vocabulary by excluding stopwords and words not in the english dictionary
+def substitute_emoji(text):
+    """Replace emoji with space separated words describing the emoji."""
 
-    Returns
-    -------
-    A string to be used by the vectorizers
+    def replace_underscore(text):
+        return text.group()[1:-1].replace("_", " ")
+
+    text = emoji.demojize(text, delimiters=(" :", ": "))
+    text = re.sub(r":\w+:", replace_underscore, text, flags=FLAGS)
+    return text
+
+def glove_tokenize(text):
     """
-    doc = doc.split()
+    Based on script for preprocessing tweets by Romain Paulus with small
+    modifications by Jeffrey Pennington with translation to Python by Motoki Wu.
 
-    words = []
-    for word in doc:
-        demoji = emoji.demojize(word, delimiters=(" ", " "))
-        # We split again because before demojize there could have been emoji's connected to words
-        # without whitespace
-        demoji = demoji.split()
-        words += [word.lower() for word in demoji]
-    
-    with open("src/special_characters.txt") as f:
-            special_characters = set(f.read().split("\n"))
-    
-    # Remove certain special characters such as quotes
-    for c in special_characters:
-        words = list(map(lambda word: word.replace(c, ""), words))
+    The original Ruby script:
 
-    # Remove strings that contain numbers, except words with hashtags
-    words = list(filter(lambda word: (not any(char.isdigit() for char in word) or '#' in word), words))
-    
-    # Only consider nouns as possible features
-    if pos_tagging:
-        pos_tags = pos_tag(words)
-        words = [tag[0] for tag in pos_tags if tag[-1] == "NN"]
+    http://nlp.stanford.edu/projects/glove/preprocess-twitter.rb
+    """
+    # Different regex parts for smiley faces.
+    eyes = r"[8:=;]"
+    nose = r"['`\-]?"
 
-    # TODO: Single words such as 'i' still appears in vocabulary_ for some reason  
-    # Remove words that are shorter than 2 characters
-    words = list(filter(lambda word: len(word) >= 2, words))
+    # Utility function to avoid repetition.
+    def re_sub(pattern, repl):
+        return re.sub(pattern, repl, text, flags=FLAGS)
 
-    if reduce_words:
-        # Load in all the words from the english dictionary
-        # from https://github.com/dwyl/english-words
-        with open("src/english_wordlist.txt") as f:
-            english_words = set(f.read().split("\n"))
-        
-        # Remove words that are not in the english language dictionary
-        words = list(filter(lambda word: word in english_words, words))
+    # Remove duplicate or alternate white space characters.
+    text = re_sub(r"\s+", r" ")
+    text = text.strip()
 
-        # Load in the stop words
-        # from https://gist.github.com/rg089/35e00abf8941d72d419224cfd5b5925d
-        with open("src/stopwords.txt") as f:
-            stopwords = set(f.read().split("\n"))
+    # Resolve some HTML codes to their ASCII characters.
+    text = re_sub(r"&amp;", r"&")
+    text = re_sub(r"&gt;", r">")
+    text = re_sub(r"&lt;", r"<")
 
-        # Remove stopwords
-        words = list(filter(lambda word: word not in stopwords, words))
-   
+    # Tokenization in line with GloVe's preprocessing Ruby script.
+    text = re_sub(r"https?:\/\/\S+\b|www\.(\w+\.)+\S*", "<url>")
+    text = re_sub(r"URL", "<url>")  # Our dataset has its own url token.
+    text = re_sub(r"@\w+", "<user>")
+    text = re_sub(f"{eyes}{nose}[)dD]+|[)dD]+{nose}{eyes}", "<smile>")
+    text = re_sub(f"{eyes}{nose}p+", "<lolface>")
+    text = re_sub(f"{eyes}{nose}\\(+|\\)+{nose}{eyes}", "<sadface>")
+    text = re_sub(f"{eyes}{nose}[\\/|l*]", "<neutralface>")
+    text = re_sub(r"❤|<3", "<heart>")
+    text = re_sub(r"[-+]?[.\d]*[\d]+[:,.\d]*", "<number>")
+    text = re_sub(r"#\S+", hashtag)
+    text = re_sub(r"([!?.]){2,}", r"\1 <repeat>")
+    text = re_sub(r"\b(\S*?)(.)\2{2,}\b", r"\1\2 <elong>")
+    text = re_sub(r"([A-Z]){2,}", allcaps)
+
+    # Rewrite unusual hyphen character.
+    text = re_sub(r"—", r"-")
+
+    # Rewrite unusual quote characters.
+    text = re_sub(r"`", r"'")
+    text = re_sub(r"‘", r"'")
+    text = re_sub(r"’", r"'")
+    text = re_sub(r"“", r'"')
+    text = re_sub(r"”", r'"')
+
+    # Clean up lines that are wrapped in quotes (quote tweets?).
+    text = re_sub(r"\"", r"")
+
+    # Expand common contractions.
+    text = re_sub(r"\swon\'t", " will not")
+    text = re_sub(r"\scan\'t", " can not")
+    text = re_sub(r"n\'t\s", " not ")
+    text = re_sub(r"\'re\s", " are ")
+    text = re_sub(r"\'s\s", " is ")
+    text = re_sub(r"\'d\s", " would ")
+    text = re_sub(r"\'ll\s", " will ")
+    text = re_sub(r"\'t\s", " not ")
+    text = re_sub(r"\'ve\s", " have ")
+    text = re_sub(r"\'m\s", " am ")
+
+    # Add white space around <tokens>.
+    text = re_sub(r"(<[^\s>]+>)", r" \1 ")
+
+    # Insert white space around any non-token < and > characters.
+    text = re_sub(r"<([^\s>]+)(\s)", r"< \1\2")
+    text = re_sub(r"(\s)([^\s<]+)>", r"\1\2 >")
+
+    # Replace special ... character which has no embedding.
+    text = re_sub(r"…", r" . <repeat> ")
+
+    # Repeatedly insert white space around punctuation characters.
+    old = ""
+    punctuation = r"!\"#\$%&'\(\)\*\+,-\./:;<=>\?@\[\\\]\^_`\{\|\}~"
+    while old != text:
+        old = text
+        text = re_sub(f"([{punctuation.replace('<', '')}])(\\S+)", r" \1 \2")
+        text = re_sub(f"(\\S+)([{punctuation.replace('>', '')}])", r"\1 \2 ")
+
+    # Remove duplicate or alternate white space characters.
+    text = re_sub(r"\s+", r" ")
+    text = text.strip()
+
+    return text
+
+def pos_tagging(text):
+    """Pos tagging by only considering nouns, proper nouns and adjectives"""
+    pos_tags = pos_tag(text.split())
+    text = [tag[0] for tag in pos_tags if tag[-1] in ["NN", "NNP", "JJ", "JJR", "JJS", "NNS", "NNPS"]]
+    text = " ".join(text)
+    return text
+
+def preprocessor(text, glove=False, remove_emojis=False, pos_tags=False, stemmer=None, lemmatizer=None):
+    """Preprocesses tweets."""
+
+    # Emoji removal or substitution
+    if remove_emojis:
+        text = remove_emojis(text)
+    else: 
+        text = substitute_emoji(text)
+
+    # Glove preprocessing
+    if glove:
+        text = glove_tokenize(text)
+
+    # POS-tagging
+    if pos_tags:
+        text = pos_tagging(text)
+
     # Perform stemming or lemmatization
+    text = text.split()
     if lemmatizer is not None:
-        words = list(map(lambda word: lemmatizer.lemmatize(word), words))
+        text = list(map(lambda word: lemmatizer.lemmatize(word), text))
     if stemmer is not None:
-        words = list(map(lambda word: stemmer.stem(word), words))
+        text = list(map(lambda word: stemmer.stem(word), text))
+    text = " ".join(text)
 
-    processed_tweet = " ".join(words)
-    return processed_tweet
-
-# TODO: remove later
-def pos_tags_summary():
-    import collections
-    from nltk import pos_tag
-
-    X_train, y_train = read_corpus("../data/train.tsv")
-    pos_list = pos_tag(X_train[0].split())
-    pos_counts = collections.Counter((subl[1] for subl in pos_list))
-    for tweet in X_train[1:]:
-        pos_list = pos_tag(tweet.split())
-        pos_counts += collections.Counter((subl[1] for subl in pos_list))
-    print(pos_counts)
+    return text.lower()

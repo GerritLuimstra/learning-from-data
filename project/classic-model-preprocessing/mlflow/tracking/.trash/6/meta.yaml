@@ -1,0 +1,7 @@
+artifact_location: ./mlflow/artifacts/6
+creation_time: 1667729935707
+experiment_id: '6'
+last_update_time: 1667731085251
+lifecycle_stage: active
+name: Learning From Data Project - Classic Model (Preprocessing) - Test
+tags: {}
