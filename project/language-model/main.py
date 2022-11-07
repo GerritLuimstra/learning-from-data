@@ -81,7 +81,7 @@ def create_arg_parser():
                         model")
     parser.add_argument("-ep", "--epochs", type=int, default=10,
                         help="Maximum number of epochs to train the model for")
-    parser.add_argument("-p", "--patience", type=int, default=5,
+    parser.add_argument("-p", "--patience", type=int, default=3,
                         help="Number of epochs with no improvement before \
                         training is stopped early")
     parser.add_argument("-b", "--batch_size", type=int, default=16,
@@ -179,7 +179,8 @@ def train_model(model, X_train, Y_train, X_dev, Y_dev, settings, labels):
     # Stop training when there are some number (3 by default) consecutive
     # epochs without improving.
     callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
-                                                patience=settings.patience)
+                                                patience=settings.patience, 
+                                                restore_best_weights=True)
 
     # Fit the model to our data.
     history = model.fit(X_train, Y_train, verbose=settings.verbose,
@@ -251,14 +252,14 @@ def run_language_model(args, model_settings, train_settings):
         
         # Read in test set and tokenize.
         X_test, Y_test = read_tweets(args.test_file)
-        Y_test_bin = encoder.fit_transform(Y_test)
+        Y_test_bin = np.array([1 if l == "OFF" else 0 for l in Y_test])
         tokens_test = tokenizer(X_test, padding=True,
                                 max_length=args.sequence_length,
                                 truncation=True, return_tensors="np").data
 
         # Do the predictions.
         test_set_predict(model, tokens_test, Y_test_bin, "test",
-                         encoder.classes_, train_settings.confusion_matrix)
+                         ["NOT", "OFF"], train_settings.confusion_matrix)
 
 
 def main():
