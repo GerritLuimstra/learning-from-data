@@ -11,8 +11,10 @@ import logging
 import os
 import sys
 
+import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import classification_report, f1_score
+from sklearn.metrics import (classification_report, ConfusionMatrixDisplay,
+                             confusion_matrix, f1_score)
 from utilities import read_tweets
 
 
@@ -26,8 +28,14 @@ def create_arg_parser():
                         help="Output file where macro F1 scores will be saved")
     parser.add_argument("-pd", "--predictions_directory", type=str,
                         help="Directory of files with predicted labels")
+    parser.add_argument("-pf", "--predictions_file", type=str,
+                        help="File with predicted labels. Overrides the \
+                        --predictions_directory argument")
     parser.add_argument("-lf", "--log_file", type=str,
                         help="File where the logs will be saved")
+    parser.add_argument("-cm", "--confusion_matrix", default=False,
+                        action="store_true", help="If added, plot and save a \
+                        confusion matrix for the last predictions file")
     args = parser.parse_args()
     return args
 
@@ -51,17 +59,29 @@ def main():
     logging.info("Reading true labels from %s", args.true_file)
     _, labels = read_tweets(args.true_file)
 
-    # Find the files containing predictions.
-    predictions_files = os.listdir(args.predictions_directory)
-    predictions_files.sort()
+    # Find the file(s) containing predictions.
+    if args.predictions_file:
+        predictions_files = [args.predictions_file]
+    else:
+        predictions_files = os.listdir(args.predictions_directory)
+        predictions_files = [f"{args.predictions_directory}/{f}"
+                             for f in predictions_files]
+        predictions_files.sort()
 
     # Read the predictions.
     for predictions_file in predictions_files:
-        predictions_file = f"{args.predictions_directory}/{predictions_file}"
         logging.info("Reading predictions from %s", predictions_file)
         predictions = np.rint(np.loadtxt(predictions_file))
 
         scores.append(f1_score(labels, predictions, average="macro"))
+
+        # Plot a confusion matrix if specified.
+        if args.confusion_matrix:
+            cm = confusion_matrix(labels, predictions)
+            ConfusionMatrixDisplay(confusion_matrix=cm,
+                                   display_labels=["NOT", "OFF"]).plot()
+            plt.savefig("confusion_matrix.pdf", bbox_inches="tight",
+                        format="pdf")
 
         # Print individual results.
         print(classification_report(labels, predictions))
