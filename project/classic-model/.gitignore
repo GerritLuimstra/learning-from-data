@@ -1,0 +1,7 @@
+# Ignore large, binary model files
+results/**/models/0
+results/**/models/1
+results/**/models/2
+results/**/models/3
+results/**/models/4
+

@@ -1,1 +1,0 @@
-baseline model bit better than putting everything in one class (which has accuracy 64%), our LinearSVC has accuracy 0.75 with intuitive features
