@@ -1,4 +1,4 @@
-### Used language models
+# Used language models
 The exact version of the used language models can be found in the following table:
 | Algorithm  | Model Name  |
 |---|---|
@@ -10,7 +10,7 @@ The exact version of the used language models can be found in the following tabl
 | DeBERTa | microsoft/deberta-base |
 | BertTweet | vinai/bertweet-base |
 
-### Running a model
+# Running a model
 
 All model parameters we have used in our experiments can be specified as command line arguments. The program will display a description of each available command line argument by specifying the `--help` flag. For example:
 ```{bash}
