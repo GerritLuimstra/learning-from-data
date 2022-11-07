@@ -5,22 +5,18 @@ This script allows for the training and testing of pretained language models.
 All relevant settings can be specified via the command line.
 Use the -h or --help flag to show a help message.
 """
-
 import argparse
-import json
-import random as python_random
-from typing import NamedTuple
-
-import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import (classification_report, ConfusionMatrixDisplay,
-                             confusion_matrix)
 import tensorflow as tf
-from tensorflow.keras.losses import BinaryCrossentropy
+from typing import NamedTuple
+import random as python_random
+import matplotlib.pyplot as plt
 from tensorflow.keras.optimizers import Adam, SGD
+from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
-from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import (classification_report, ConfusionMatrixDisplay,
+                             confusion_matrix)
 
 # Make results reproducible.
 np.random.seed(1234)
@@ -148,6 +144,7 @@ def create_language_model(model_name, settings):
 
     model.compile(loss=loss_function, optimizer=optimizer,
                   metrics=["accuracy"])
+    
     print(model.summary())
 
     return model
@@ -201,8 +198,6 @@ def test_set_predict(model, X_test, Y_test, ident, labels, plot_cm):
     # Print a classification report.
     print(f"Classification results on {ident} set:")
     print(classification_report(Y_test, Y_pred, target_names=labels))
-    fpr, tpr, _ = roc_curve(Y_test, Y_pred, pos_label=1)
-    print("AUC", auc(fpr, tpr))
 
     # Save a confusion matrix if specified.
     if plot_cm:
