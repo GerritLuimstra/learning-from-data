@@ -35,7 +35,7 @@ def create_arg_parser():
                         help="File where the trained model will be saved")
     parser.add_argument("-ff", "--feature_file", type=str,
                         help="File where the top 10 feature importances will be saved")
-    parser.add_argument("-s", "--seed", type=int,
+    parser.add_argument("-s", "--seed", type=int, default=0,
                         help="If added, random seed to use for reproducible \
                         results")
     parser.add_argument("-m", "--model_name", type=str, default='nb', help="The model to use. Can be one of ['nb', 'et', 'rf', 'knn', 'svc', 'linearsvc']")

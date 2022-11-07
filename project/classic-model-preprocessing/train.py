@@ -33,8 +33,6 @@ def create_arg_parser():
                         help="File that will be used to perform training.", default = "../data/train.tsv")
     parser.add_argument("-mf", "--model_file", type=str,
                         help="File where the trained model will be saved")
-    parser.add_argument("-bf", "--best_features", action = "store_true", default = False,
-                        help="If true, the top 10 feature importances will be printed and saved")
     parser.add_argument("-ff", "--feature_file", type=str,
                         help="File where the top 10 feature importances will be saved")
     parser.add_argument("-s", "--seed", type=int,
@@ -150,10 +148,9 @@ def main():
     if args.model_file:
         dill.dump((classifier, vec), open(args.model_file, 'wb'))
     
-    # Save top 10 important features for certain models
-    if args.best_features:
-        if args.model_name in ['rf', 'et']:
-            save_feature_importances(classifier.feature_importances_, vec.get_feature_names_out(), args.feature_file)
+    # Save top 10 important features for ET model
+    if args.model_name in ['et']:
+        save_feature_importances(classifier.feature_importances_, vec.get_feature_names_out(), args.feature_file)
 
 
 if __name__ == "__main__":

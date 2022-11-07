@@ -1,0 +1,9 @@
+name: classic_model
+channels:
+  - conda-forge
+dependencies:
+  - scikit-learn
+  - nltk
+  - matplotlib
+  - dill
+  - emoji
