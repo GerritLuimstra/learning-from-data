@@ -1,5 +1,3 @@
-# Setting up the environment
-
 ### Used language models
 The exact version of the used language models can be found in the following table:
 | Algorithm  | Model Name  |
