@@ -46,6 +46,6 @@ python main.py -lm bert-base-uncased -o adam -ep 10 -lr 0.005 -b 64 -s 100      
 python main.py -lm distilbert-base-uncased -o adam -ep 10 -lr 0.000005 -b 128 -s 100 --trainable          # W: 0.81, AUC: 0.782, M: 0.79
 ```
 
-These commands will print out a classification report. A confusion matrix will be plotted and saved if the `--confusion_matrix` flag is provided. To run these models on the test set the argument `-t=../data/test.txt` should be provided.
+These commands will print out a classification report. A confusion matrix will be plotted and saved if the `--confusion_matrix` flag is provided. To run these models on the test set the argument `-t=../data/test.tsv` should be provided.
 
 **NOTE**: All these examples assume that the code is run from the same directory as this README file. If you want to run the code from another directory the paths shown above should be updated to reflect this. Additionally, the correct paths to the train and developments files will need to be specified manually.
