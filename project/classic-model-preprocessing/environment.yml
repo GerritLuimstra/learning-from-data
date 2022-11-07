@@ -1,9 +1,0 @@
-name: learningfromdata_group20
-channels:
-  - conda-forge
-dependencies:
-  - mlflow
-  - scikit-learn
-  - nltk
-  - tqdm
-  - matplotlib
