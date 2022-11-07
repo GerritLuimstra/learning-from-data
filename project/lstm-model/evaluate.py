@@ -11,8 +11,10 @@ import logging
 import os
 import sys
 
+import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import classification_report, f1_score
+from sklearn.metrics import (classification_report, ConfusionMatrixDisplay,
+                             confusion_matrix, f1_score)
 from utilities import read_tweets
 
 
@@ -31,6 +33,9 @@ def create_arg_parser():
                         --predictions_directory argument")
     parser.add_argument("-lf", "--log_file", type=str,
                         help="File where the logs will be saved")
+    parser.add_argument("-cm", "--confusion_matrix", default=False,
+                        action="store_true", help="If added, plot and save a \
+                        confusion matrix for the last predictions file")
     args = parser.parse_args()
     return args
 
@@ -69,6 +74,14 @@ def main():
         predictions = np.rint(np.loadtxt(predictions_file))
 
         scores.append(f1_score(labels, predictions, average="macro"))
+
+        # Plot a confusion matrix if specified.
+        if args.confusion_matrix:
+            cm = confusion_matrix(labels, predictions)
+            ConfusionMatrixDisplay(confusion_matrix=cm,
+                                   display_labels=["NOT", "OFF"]).plot()
+            plt.savefig("confusion_matrix.pdf", bbox_inches="tight",
+                        format="pdf")
 
         # Print individual results.
         print(classification_report(labels, predictions))
