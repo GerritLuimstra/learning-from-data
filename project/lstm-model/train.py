@@ -248,7 +248,7 @@ def main():
         logging.info("Running %s", ' '.join(sys.argv))
 
     # Make results reproducible if a seed was provided.
-    if args.seed:
+    if args.seed is not None:
         set_seed(args.seed)
 
     # Read in the data.
