@@ -26,6 +26,9 @@ def create_arg_parser():
                         help="Output file where macro F1 scores will be saved")
     parser.add_argument("-pd", "--predictions_directory", type=str,
                         help="Directory of files with predicted labels")
+    parser.add_argument("-pf", "--predictions_file", type=str,
+                        help="File with predicted labels. Overrides the \
+                        --predictions_directory argument")
     parser.add_argument("-lf", "--log_file", type=str,
                         help="File where the logs will be saved")
     args = parser.parse_args()
@@ -51,13 +54,17 @@ def main():
     logging.info("Reading true labels from %s", args.true_file)
     _, labels = read_tweets(args.true_file)
 
-    # Find the files containing predictions.
-    predictions_files = os.listdir(args.predictions_directory)
-    predictions_files.sort()
+    # Find the file(s) containing predictions.
+    if args.predictions_file:
+        predictions_files = [args.predictions_file]
+    else:
+        predictions_files = os.listdir(args.predictions_directory)
+        predictions_files = [f"{args.predictions_directory}/{f}"
+                             for f in predictions_files]
+        predictions_files.sort()
 
     # Read the predictions.
     for predictions_file in predictions_files:
-        predictions_file = f"{args.predictions_directory}/{predictions_file}"
         logging.info("Reading predictions from %s", predictions_file)
         predictions = np.rint(np.loadtxt(predictions_file))
 
