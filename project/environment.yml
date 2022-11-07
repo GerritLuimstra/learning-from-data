@@ -9,3 +9,5 @@ dependencies:
   - keras
   - tensorflow
   - transformers
+  - dill
+  - emoji
