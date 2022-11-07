@@ -1,15 +1,4 @@
-# Setting up the environment
-
-In order to set up the environment that we used to train and test our models, the first thing to do would be to set up the conda environment. We have created a conda `environment.yml` file, so setting up the environment should be as simple as:
-```{bash}
-conda env create -f environment.yml
-```
-After the environment is created, you can activate it using:
-```{bash}
-conda activate classic_model
-```
-
-### Running a model
+# Running a model
 
 Running a model is done in three stages using the `train.py`, `predict.py`, and `evaluate.py` scripts. Training a model is done using the `train.py` script with a command such as:
 ```{bash}
