@@ -155,9 +155,6 @@ def get_predict_args(directory, run, test):
 
     return predict_args
 
-<<<<<<< HEAD
-def get_evaluate_args(directory):
-=======
 
 def evaluate(args, directory):
     """Run evaluate.py with the specified arguments and in the given experiment
@@ -177,7 +174,6 @@ def evaluate(args, directory):
 
 
 def get_evaluate_args(directory, test):
->>>>>>> ae293e70ade18d618f1b5c36e41fb4791a34472d
     """Get command line arguments for evaluate.py."""
 
     evaluate_args = ""
